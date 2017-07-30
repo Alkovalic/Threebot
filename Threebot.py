@@ -69,11 +69,11 @@ class Threebot(discord.Client):
         except KeyError:
             await self.do_default(command, message)
 
-    async def on_error(self, event_method, *args, **kwargs):
-        print("Super gay stuff:")
-        print(event_method)
-        print(*args)
-        print(**kwargs)
+    #async def on_error(self, event_method, *args, **kwargs):
+        #print("Super gay stuff:")
+        #print(event_method)
+        #print(*args)
+        #print(**kwargs)
 
     # THE MAIN DEAL #
 

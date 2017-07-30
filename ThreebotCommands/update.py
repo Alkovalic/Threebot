@@ -8,6 +8,9 @@ class UPDATE(Command.Command):
 
     async def run(self, client, message):
 
+        if not message.author.id == "158738845758652416":
+            return
+
         await client.send_message(message.channel, "Updating Threebot..")
 
         g = git.cmd.Git(os.path.dirname(os.path.dirname(__file__)))
