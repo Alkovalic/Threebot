@@ -693,8 +693,13 @@ class ServerData():
 
         channel = self.__voice_client.channel
 
+        if self.__player and self.__player.is_playing():
+            self.__player.pause()
+
         await self.__voice_client.disconnect()
         self.__voice_client = await client.join_voice_channel(channel)
+        if self.__player:
+            self.__player.resume()
         if after is not None:
             await after()
 
