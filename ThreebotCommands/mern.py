@@ -8,9 +8,9 @@ import shutil
 class MERN(Command.Command):
 
     def __init__(self):
-        self.__default = os.listdir("/home/pi/Threebot/default_misc/mern/")
+        self.__default = os.listdir(os.path.dirname(os.path.dirname(__file__)) + "/default_misc/mern/")
         for i in range(len(self.__default)):
-            self.__default[i] = "/home/pi/Threebot/default_misc/mern/" + self.__default[i]
+            self.__default[i] = os.path.dirname(os.path.dirname(__file__)) + "/default_misc/mern/" + self.__default[i]
 
     def info(self):
         name = "mern"
@@ -23,7 +23,7 @@ class MERN(Command.Command):
         return name, desc
 
     def get_mern_dir(self, id):
-        return os.path.dirname(os.path.dirname(__file__)) + "ServerData/" + str(id) + "/mern/"
+        return os.path.dirname(os.path.dirname(__file__)) + "/ServerData/" + str(id) + "/mern/"
 
     def get_random_image(self, path):
         image_list = os.listdir(path) + self.__default
