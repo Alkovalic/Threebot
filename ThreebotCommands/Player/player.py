@@ -11,7 +11,9 @@ class PLAYER(Command.Command):
         self.__queues = {}
         self.__currents = {}
         self.__dl_dir = None
-        data = open("/home/pi/Threebot/video_data.pickle", "rb")
+        self.__directory = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + "video_data.pickle"
+        # data = open("/home/pi/Threebot/video_data.pickle", "rb")
+        data = open(self.__directory, "rb")
         self.__video_data_dict = pickle.load(data)
 
     """
@@ -25,14 +27,14 @@ class PLAYER(Command.Command):
 
     def pickle_video_data(self):
 
-        backup_name = "/home/pi/Threebot/video_data.pickle.old"
+        backup_name = self.__directory + ".old"
 
         if os.path.isfile(backup_name):
             os.remove(backup_name)
 
-        os.rename("/home/pi/Threebot/video_data.pickle", backup_name)
+        os.rename(self.__directory, backup_name)
 
-        with open("/home/pi/Threebot/video_data.pickle", "wb") as file:
+        with open(self.__directory, "wb") as file:
             pickle.dump(self.__video_data_dict, file)
             file.close()
 
