@@ -69,12 +69,6 @@ class Threebot(discord.Client):
         except KeyError:
             await self.do_default(command, message)
 
-    #async def on_error(self, event_method, *args, **kwargs):
-        #print("Super gay stuff:")
-        #print(event_method)
-        #print(*args)
-        #print(**kwargs)
-
     # THE MAIN DEAL #
 
     async def on_message(self, message):
@@ -93,5 +87,7 @@ class Threebot(discord.Client):
             raise TypeError("No cmd symbol found!")
 
         # NEVER GIVE UP #
+
+        # TODO:  Have command obtaining loops in here to have less clutter in Launcher.py (soon to be main)
 
         self.run(self.__cToken)
