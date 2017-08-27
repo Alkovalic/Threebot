@@ -183,7 +183,7 @@ rmMern <serverID> <imageName> (Note:  file extension necessary)
     async def do_pm_command(self, message):
 
         if message.content.lstrip(self._cmdSym) == "im gay":
-            return await self.send_file(message.author, os.path.dirname(__file__) + "default_misc/important_image.jpg")
+            return await self.send_file(message.author, os.path.dirname(__file__) + "/default_misc/important_image.jpg")
 
         can_input_commands = False
         available_servers = {}  # Available servers mapped as <server id> => <ServerData>
