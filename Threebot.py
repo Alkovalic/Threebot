@@ -3,6 +3,7 @@
 import discord
 import logging
 import ThreeParser
+import asyncio
 
 
 from discord import opus
@@ -77,7 +78,7 @@ class Threebot(discord.Client):
 
     # THIS IS WHAT THE FUTURE LOOKS LIKE #
 
-    def CANNON_ENGAGED(self):  # FEEL THE THUNDER
+    async def CANNON_ENGAGED(self):  # FEEL THE THUNDER
 
         # EYES ON THE HORIZON #
 
@@ -90,4 +91,19 @@ class Threebot(discord.Client):
 
         # TODO:  Have command obtaining loops in here to have less clutter in Launcher.py (soon to be main)
 
-        self.run(self.__cToken)
+        print("Logging in..")
+
+        try:
+            await self.login(self.__cToken)
+            print("Logged in!")
+        except discord.HTTPException as e:
+            print(str(e))
+            raise # Unnecessary?0
+
+        print("Connecting..")
+        while self.ws is None or self.is_closed():
+            try:
+                await self.connect()
+            except (discord.ConnectionClosed, discord.GatewayNotFound):
+                await asyncio.sleep(60)
+

@@ -3,6 +3,9 @@ import Command
 import ThreebotCommands
 import sys
 import os
+import asyncio
+
+import websockets.exceptions
 
 # COMMANDS #
 
@@ -30,10 +33,12 @@ bot = ThreePi.ThreePi(bot_args, cmd_dict)
 cmd_dict["help"].set_cmd_dict(cmd_dict)
 cmd_dict["player"].initialize(cmd_dict, "/mnt/banana/")
 
+loop = asyncio.get_event_loop()
+
 # MY MAIN MAN #
 
-def main():
+def main(lp):
 
-    bot.CANNON_ENGAGED()
+    lp.run_until_complete(bot.CANNON_ENGAGED())
 
-main()
+main(loop)
