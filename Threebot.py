@@ -101,7 +101,7 @@ class Threebot(discord.Client):
             raise # Unnecessary?0
 
         print("Connecting..")
-        while self.ws is None or self.is_closed():
+        while self.ws is None or self.is_closed:
             try:
                 await self.connect()
             except (discord.ConnectionClosed, discord.GatewayNotFound):
