@@ -8,4 +8,4 @@ class TEST(Command.Command):
 
         embed = discord.Embed(title='<video id="sampleMovie" src="HTML5Sample.mov"></video>')
 
-        return await client.send_message(embed=embed)
+        return await client.send_message(message.channel, embed=embed)
