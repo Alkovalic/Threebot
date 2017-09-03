@@ -23,7 +23,7 @@ class CURRENT(Command.Command):
         seconds //= 60
 
         hour = seconds % 60
-        return sec, min, hour
+        return hour, min, sec
 
     async def run(self, client, message):
 
