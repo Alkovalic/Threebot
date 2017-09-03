@@ -40,7 +40,7 @@ class HELP(Command.Command):
         embed.set_author(name="List of Threebot commands:")
 
         for item in cmds:
-            embed.add_field(name=item, inline=True)
+            embed.add_field(name=item, value="", inline=True)
 
         return embed
 
