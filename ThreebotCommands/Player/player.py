@@ -135,7 +135,7 @@ class PLAYER(Command.Command):
                 "  queue      - Displays up to the first 10 songs in queue.\n\n"
                 "Notes:  \n"
                 "  Playlists and timestamped videos will not be played.\n"
-                "  Streams can be choppy and crazy, so play them at your own risk.\n")
+                "  Streams can be choppy and crazy (if they work at all), so play them at your own risk.\n")
 
         return name, desc
 

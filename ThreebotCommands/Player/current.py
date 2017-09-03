@@ -40,7 +40,7 @@ class CURRENT(Command.Command):
 
             duration_string = "Duration:  {}:{}:{}".format(*self.get_duration(info["duration"]))
 
-            embed = discord.Embed(title=info["title"], url=info['webpage_url'], description=duration_string)
+            embed = discord.Embed(title=info["title"], url=info['webpage_url'], description=duration_string, color=discord.Color.dark_gold())
             embed.set_author(name="Currently playing:")
             embed.set_thumbnail(url=info["thumbnail"])
 
