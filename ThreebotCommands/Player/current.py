@@ -25,7 +25,7 @@ class CURRENT(Command.Command):
         # return await client.send_message(message.channel, "Current song:  " + video_data.get_url())
 
         with youtube_dl.YoutubeDL({'quiet': True}) as ydl:
-            info = ydl.extract_info(video_data["url"], download=False)
+            info = ydl.extract_info(video_data.get_url(), download=False)
 
             embed = discord.Embed(title=info["title"], url=info['webpage_url'], description=info["duration"])
             embed.set_author(name="Currently playing:")
