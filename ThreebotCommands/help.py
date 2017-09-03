@@ -41,7 +41,7 @@ class HELP(Command.Command):
 
         for item in cmds:
             if cmds[item] != "disabled":
-                embed.add_field(name=item, value="", inline=True)
+                embed.add_field(name=item, value=" ", inline=True)
 
         return embed
 
