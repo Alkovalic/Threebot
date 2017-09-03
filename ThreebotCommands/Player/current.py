@@ -1,4 +1,6 @@
 import Command
+import youtube_dl
+import discord
 
 
 class CURRENT(Command.Command):
@@ -16,6 +18,18 @@ class CURRENT(Command.Command):
 
         server = client.get_server_data(message)
         video_data = self.__player_object.get_current_song(server)
+
         if video_data is None:
-            return await client.send_message(message.channel, "Current song:  None")
-        return await client.send_message(message.channel, "Current song:  " + video_data.get_url())
+            return await client.send_message(message.channel, "No song currently playing.")
+
+        # return await client.send_message(message.channel, "Current song:  " + video_data.get_url())
+
+        with youtube_dl.YoutubeDL({'quiet': True}) as ydl:
+            info = ydl.extract_info(video_data["url"], download=False)
+
+            embed = discord.Embed(title=info["title"], url=info['webpage_url'], description=info["duration"])
+            embed.set_author(name="Currently playing:")
+            embed.set_thumbnail(url=info["thumbnail"])
+
+            return await client.send_message(message.channel, embed=embed)
+
