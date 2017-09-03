@@ -8,7 +8,7 @@ class TRUMP(Command.Command):
     def info(self):
 
         name = "trump"
-        description = ("Returns President Donald John Trump.\n"
+        description = ("Returns President Donald John Trump.\n\n"
                        "Format:  trump\n")
 
         return name, description

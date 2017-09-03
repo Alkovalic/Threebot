@@ -9,7 +9,7 @@ class PING(Command.Command):
 
     def info(self):
         name = "ping"
-        desc = ("Returns pong.\n"
+        desc = ("Returns pong.\n\n"
                 "Format:  ping\n")
         return name, desc
 

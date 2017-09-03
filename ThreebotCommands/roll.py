@@ -7,8 +7,8 @@ class ROLL(Command.Command):
     def info(self):
 
         name = "roll"
-        description = ("Returns a dice roll and it's sum specified by the user.\n"
-                       "Format:  roll <dice>d<faces>\n"
+        description = ("Returns a dice roll and it's sum specified by the user.\n\n"
+                       "Format:  roll <dice>d<faces>\n\n"
                        "Note:  roll returns 3d6 if no arguments are provided.")
 
         return name, description

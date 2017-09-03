@@ -40,7 +40,8 @@ class HELP(Command.Command):
         embed.set_author(name="List of Threebot commands:")
 
         for item in cmds:
-            embed.add_field(name=item, value="", inline=True)
+            if cmds[item] != "disabled":
+                embed.add_field(name=item, value="", inline=True)
 
         return embed
 

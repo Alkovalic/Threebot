@@ -16,8 +16,8 @@ class MERN(Command.Command):
         name = "mern"
         desc = ("Returns the user's feelings at the time the command was issued.\n\n"
                 "Formats: \n"
-                "mern - Returns aforementioned information.\n"
-                "mern save - Saves an image provided by the user for use by mern.\n"
+                "  mern - Returns aforementioned information.\n"
+                "  mern save - Saves an image provided by the user for use by mern.\n\n"
                 "Note:  mern will not overwrite existing files.")
 
         return name, desc

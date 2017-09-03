@@ -8,12 +8,12 @@ class SOUNDS(Command.Command):
 
     def info(self):
         name = "sounds"
-        desc = ("Returns the list of sounds available to the server.\n"
+        desc = ("Returns the list of sounds available to the server.\n\n"
                 "Can also be used to save a new sound file that can only be "
-                "accessed by the server it was saved in.\n"
+                "accessed by the server it was saved in.  "
                 "If an argument is given otherwise, it will search sounds for "
                 "any sounds that start with the argument.\n\n"
-                "Formats:\nsounds <search>\nsounds save")
+                "Formats:\n  sounds <search>\n  sounds save")
 
         return name, desc
 

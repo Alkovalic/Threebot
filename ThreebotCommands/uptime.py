@@ -5,7 +5,7 @@ class UPTIME(Command.Command):
 
     def info(self):
         name = "uptime"
-        description = ("Returns the time since Threebot's last reboot.\n"
+        description = ("Returns the time since Threebot's last reboot.\n\n"
                        "Format:  uptime")
 
         return name, description

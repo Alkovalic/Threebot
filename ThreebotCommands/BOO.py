@@ -20,11 +20,11 @@ class BOO(Command.Command):
 
         command = "BOO"
         description = ("Returns a random Boo.  \n\nCurrent chance table:  \n"
-                       "Normal Boo:  50%\n"
-                       "Wizard Boo:  25%\n"
-                       "King Boo:  15%\n"
-                       "Pink Gay Boo:  10%\n"
-                       "RainBoo:  gay%\n"
+                       "  Normal Boo:  50%\n"
+                       "  Wizard Boo:  25%\n"
+                       "  King Boo:  15%\n"
+                       "  Pink Gay Boo:  10%\n"
+                       "  RainBoo:  gay%\n\n"
                        "Format:  BOO\n"
                        )
 
