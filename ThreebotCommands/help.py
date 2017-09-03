@@ -22,15 +22,12 @@ class HELP(Command.Command):
                          str(random.randint(0, 9)) + str(random.randint(0, 9)) + str(random.randint(0, 9)) + str(random.randint(0, 9)) + "]```")
             return to_string
 
-        elif type(info_tuple) is tuple:
-            """
-            to_string = "```" + info_tuple[0] + ":\n\n"
-            to_string += info_tuple[1] + "```"
-            return to_string
-            """
+        if type(info_tuple) is tuple:
 
-            embed = discord.Embed(title=info_tuple()[0], description=info_tuple()[1], color=discord.Color.gold())
+            embed = discord.Embed(title=info_tuple[0], description=info_tuple[1], color=discord.Color.gold())
             embed.set_author(name="Threebot Command")
+
+            return embed
 
         else:
             return None
@@ -43,7 +40,7 @@ class HELP(Command.Command):
         embed.set_author(name="List of Threebot commands:")
 
         for item in cmds:
-            embed.add_field(name=item, value=cmds[item], inline=True)
+            embed.add_field(name=item, inline=True)
 
         return embed
 
