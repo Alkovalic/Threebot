@@ -1,5 +1,6 @@
 import random
 import Command
+import discord
 
 
 class HELP(Command.Command):
@@ -22,27 +23,29 @@ class HELP(Command.Command):
             return to_string
 
         elif type(info_tuple) is tuple:
+            """
             to_string = "```" + info_tuple[0] + ":\n\n"
             to_string += info_tuple[1] + "```"
             return to_string
+            """
+
+            embed = discord.Embed(title=info_tuple()[0], description=info_tuple()[1], color=discord.Color.gold())
+            embed.set_author(name="Threebot Command")
 
         else:
             return None
 
-    def get_all_commands(self):
+    def get_all_commands(self, server_data):
 
-        command_list = []
-        to_string = "```List of commands in Threebot:  \n\n"
+        cmds = server_data.get_command_whitelist()
 
-        for i, j in self.__cmd_dict.items():
-            a = j.info()
-            if a is not None and len(a) == 2:
-                command_list.append(j)
+        embed = discord.Embed(title=" ", color=discord.Color.gold())
+        embed.set_author(name="List of Threebot commands:")
 
-        for i in command_list:
-            to_string += i.info()[0] + "\n"
+        for item in cmds:
+            embed.add_field(name=item, value=cmds[item], inline=True)
 
-        return to_string + "```"
+        return embed
 
     def info(self):
 
@@ -57,7 +60,7 @@ class HELP(Command.Command):
         try:
             command_content = message.content.lstrip(client._cmdSym).split(" ")[1]
         except IndexError:
-            return await client.send_message(message.channel, self.get_all_commands())
+            return await client.send_message(message.channel, embed=self.get_all_commands(client.get_server_data(message=message)))
 
         help_obj = None
 
@@ -77,7 +80,9 @@ class HELP(Command.Command):
 
             to_string = self.parse_info(help_obj.info())
 
-        return await client.send_message(message.channel, to_string)
+        if type(to_string) is str:
+            return await client.send_message(message.channel, to_string)
 
+        return await client.send_message(message.channel, embed=to_string)
 
 
