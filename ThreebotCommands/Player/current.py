@@ -14,6 +14,17 @@ class CURRENT(Command.Command):
     def info(self):
         return "player"
 
+    def get_duration(self, seconds):
+
+        sec = seconds % 60
+        seconds //= 60
+
+        min = seconds % 60
+        seconds //= 60
+
+        hour = seconds % 60
+        return sec, min, hour
+
     async def run(self, client, message):
 
         server = client.get_server_data(message)
@@ -27,7 +38,9 @@ class CURRENT(Command.Command):
         with youtube_dl.YoutubeDL({'quiet': True}) as ydl:
             info = ydl.extract_info(video_data.get_url(), download=False)
 
-            embed = discord.Embed(title=info["title"], url=info['webpage_url'], description=info["duration"])
+            duration_string = "Duration:  {}:{}:{}".format(*self.get_duration(info["duration"]))
+
+            embed = discord.Embed(title=info["title"], url=info['webpage_url'], description=duration_string)
             embed.set_author(name="Currently playing:")
             embed.set_thumbnail(url=info["thumbnail"])
 
