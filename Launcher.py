@@ -41,14 +41,17 @@ def main(lp):
 
     lp.run_until_complete(bot.CANNON_ENGAGED())
 
-a = True
+a = 0
 
-while a:
+while 1:
 
     try:
         main(loop)
-    except RuntimeError:  # Catches closed event loops ..?
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    except RuntimeError as e:  # Catches closed event loops ..?
+        if a <= 2:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            a += 1
+        else:
+            raise e
 
-    a = False
