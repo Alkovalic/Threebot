@@ -42,3 +42,20 @@ ThreePi takes Threebot arguments, plus a dictionary that contains several direct
 
     do_pm_command handles private messages sent to ThreePi.  If the author does not have the ability to manage a server,
     ThreePi will do nothing.  Otherwise, it will then execute parse_pm_command.
+
+Required directories to run ThreePi:
+    ServerData/
+    ThreeConfig/
+        Whitelist.txt
+        Options.txt
+    default_misc/
+    default_sounds/
+    video_data.pickle (Should be empty dict.)
+
+Options.txt is in this format:
+    [ThreebotOptions]
+    commandStarter = <?, !, ~, ::, etc>
+    clientToken = <bot_token>
+    enabledWhitelist = <True/False>
+
+Whitelist.txt takes user ids, with a newline between each whitelistee.

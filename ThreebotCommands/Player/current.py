@@ -38,7 +38,7 @@ class CURRENT(Command.Command):
         with youtube_dl.YoutubeDL({'quiet': True}) as ydl:
             info = ydl.extract_info(video_data.get_url(), download=False)
 
-            duration_string = "Duration:  {}:{}:{}".format(*self.get_duration(info["duration"]))
+            duration_string = "Duration:  {:02d}:{:02d}:{:02d}".format(*self.get_duration(info["duration"]))
 
             embed = discord.Embed(title=info["title"], url=info['webpage_url'], description=duration_string, color=discord.Color.dark_gold())
             embed.set_author(name="Currently playing:")
