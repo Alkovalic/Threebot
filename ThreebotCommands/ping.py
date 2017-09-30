@@ -15,5 +15,5 @@ class PING(Command.Command):
 
     async def run(self, client, message):
         if time.localtime()[4] == 33:
-            return await client.send_file(message.channel, os.path.dirname(os.path.dirname(__file__)) + "default_misc/mmm.jpg")
+            return await client.send_file(message.channel, os.path.dirname(os.path.dirname(__file__)) + "/default_misc/mmm.jpg")
         return await client.send_message(message.channel, "Pong")
