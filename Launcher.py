@@ -1,58 +1,48 @@
 import ThreePi
 import Command
 import ThreebotCommands
-import sys
 import os
 import asyncio
 
 import websockets.exceptions
 
-# COMMANDS #
 
-cmd_dict = {}
+def main():
 
-for cls in Command.Command.__subclasses__():
-    cmd = cls()
-    cmd_dict[cmd.__module__.split(".")[-1]] = cmd
+    # COMMANDS #
 
-# SETTINGS #
+    cmd_dict = {}
 
-p = os.path.dirname(__file__)
+    for cls in Command.Command.__subclasses__():
+        cmd = cls()
+        cmd_dict[cmd.__module__.split(".")[-1]] = cmd
 
-bot_args = {
-            "default_sounds": p + "/default_sounds/",
-            "default_misc": p + "/default_misc/",
-            "config": p + "/ThreeConfig/",
-            "server_data": p + "/ServerData/",
-           }
+    # SETTINGS #
 
-# BOT + COMMAND SETTINGS #
+    p = os.path.dirname(__file__)
 
-bot = ThreePi.ThreePi(bot_args, cmd_dict)
+    bot_args = {
+                "default_sounds": p + "/default_sounds/",
+                "default_misc": p + "/default_misc/",
+                "config": p + "/ThreeConfig/",
+                "server_data": p + "/ServerData/",
+               }
 
-cmd_dict["help"].set_cmd_dict(cmd_dict)
-cmd_dict["player"].initialize(cmd_dict, "/mnt/banana/")
+    # BOT + COMMAND SETTINGS #
 
-loop = asyncio.get_event_loop()
+    bot = ThreePi.ThreePi(bot_args, cmd_dict)
 
-# MY MAIN MAN #
+    cmd_dict["help"].set_cmd_dict(cmd_dict)
+    cmd_dict["player"].initialize(cmd_dict, "/mnt/banana/")
 
+    lp = asyncio.get_event_loop()
 
-def main(lp):
-
-    lp.run_until_complete(bot.CANNON_ENGAGED())
-
-a = 0
-
-while 1:
-
+    # MY MAIN MAN #
     try:
-        main(loop)
-    except RuntimeError as e:  # Catches closed event loops ..?
-        if a <= 2:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            a += 1
-        else:
-            raise e
+        lp.run_until_complete(bot.CANNON_ENGAGED())
+    except websockets.ConnectionClosed as e:
+        if e.code == 1000:
+            exit()
 
+if __name__ == '__main__':
+    main()

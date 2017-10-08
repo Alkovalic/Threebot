@@ -7,4 +7,5 @@ class TEST(Command.Command):
 
     async def run(self, client, message):
 
-        return
+        client.loop.stop()
+        client.loop.close()
