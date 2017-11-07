@@ -7,5 +7,5 @@ class TEST(Command.Command):
 
     async def run(self, client, message):
 
-        client.loop.stop()
-        client.loop.close()
+        with open("gaymas.png", "rb") as image:
+            await client.edit_profile(avatar=image.read())
