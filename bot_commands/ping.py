@@ -6,7 +6,8 @@ class Ping:
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
+    @commands.command(help="Returns pong.",
+                      brief="- Returns pong.")
     async def ping(self, ctx):
         return await ctx.send("pong")
 
