@@ -27,7 +27,7 @@ class DatabaseManager:
     # Create the database pool to get connections from.
     # Takes an async loop, in this case, from a discord bot.
     async def init_db(self, loop):
-        dsn = rf'DRIVER={self._driver};DATABASE={self._database}'
+        dsn = rf'DRIVER={self._driver};DATABASE={self._database};TIMEOUT=10'
         self._pool = await aioodbc.create_pool(dsn=dsn, loop=loop)
 
     # Creates guild tables for a given guild id.
@@ -74,5 +74,5 @@ class DatabaseManager:
     # Each tuple in the entry is in the following format:
     #  (<type>, <name>, <author>, <value>, <path>)
     def get_default_entries(self):
-        dice_entry = (r"RNG", r"", r"", r"3d6", r"")
+        dice_entry = (r"RNG", None, None, r"3d6", None)
         return [dice_entry]

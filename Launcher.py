@@ -1,6 +1,6 @@
 from Threebot import Threebot
 
-init_cog = ["bot_commands.ping", "bot_commands.rng_src.rng", "bot_commands.arc_src.arc"]
+init_cog = ["bot_commands.PING", "bot_commands.rng_src.RNG", "bot_commands.arc_src.ARC"]
 
 db_args = {"DRIVER": "SQLite3 ODBC Driver",
            "DATABASE": "threebot.db"}
@@ -15,5 +15,7 @@ bot = Threebot(cogs=init_cog,
 
 with open("token.txt", 'r') as get_token:
     token = get_token.read()
+
+print("Running the bot..")
 
 bot.run(token)

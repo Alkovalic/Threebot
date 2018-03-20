@@ -1,4 +1,7 @@
+import asyncio
+
 from discord.ext import commands
+from . import archive
 
 
 # Cog
@@ -6,6 +9,14 @@ class Archive:
 
     def __init__(self, bot):
         self._bot = bot
+        self._arc_manager = None
+
+    async def on_ready(self):
+
+        while not self._bot.pool:
+            await asyncio.sleep(delay=1, loop=self._bot.loop)
+
+        self._arc_manager = archive.Archive(self._bot.pool)
 
     @commands.group(help="Archive system that uses a key -> value layout to access saved items.\n"
                          "Use arc <key> to access a value.",
@@ -36,7 +47,6 @@ class Archive:
     async def add(self, ctx, name, data=None):
         print(f"adding {name} with data {data}")
 
-    # TODO: make sure the author owns the association, or is an admin.
     @arc.command(name="rm",
                  help="Removes a <name>:<data> association from the archive.\n"
                       "The author must either be the creator of the association, "

@@ -37,6 +37,8 @@ class Threebot(commands.Bot):
     # Loads components on connect, while doing nothing on reconnect.
     async def on_ready(self):
 
+        print("Connecting..")
+
         # Bot has already connected at least once.
         if self.connected:
             print("Reconnected!")
