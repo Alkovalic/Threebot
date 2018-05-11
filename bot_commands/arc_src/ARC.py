@@ -21,13 +21,11 @@ class Archive:
     @commands.group(help="Archive system that uses a key -> value layout to access saved items.\n"
                          "Use arc <key> to access a value.",
                     brief="- Archive system.")
-    async def arc(self, ctx, name=None):
+    async def arc(self, ctx):
         if ctx.invoked_subcommand is None:
 
-            # If an argument is passed, get the value associated with the argument
-            if name is not None:
-                print(f"getting {name}")
-                return
+            # TODO:  USE THIS AS AN ON_MESSAGE FOR GETTING ARC ENTRIES.
+            print(ctx.message.content)
 
             # Otherwise, return usage information.
             return await ctx.send(f"Type {self._bot.command_prefix}help arc for usage.")
