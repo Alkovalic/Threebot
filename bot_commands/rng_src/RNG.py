@@ -121,7 +121,13 @@ class RNG:  # Cog
                       "Arguments can be combined by wrapping them in quotes.",
                  brief="- Choice selection.")
     async def choose(self, ctx, *args):
-        await ctx.send(random.choice(args))
+
+        # Check for empty and pure whitespace strings.
+        result = random.choice(args)
+        if result.isspace() or not result:
+            return await ctx.send("(None)")
+        
+        await ctx.send(result)
 
     # Reorder command from RNG.
     # Responsible for reordering a list of arguments in random order.
@@ -137,7 +143,7 @@ class RNG:  # Cog
         for i in range(len(stuff)):
             result += str(i+1) + ".  " + stuff[i] + "\n"
 
-        await ctx.send(result+"```")
+        await ctx.send(result+" ```")
 
     # Boo command from RNG.
     # Responsible for returning a random Boo.

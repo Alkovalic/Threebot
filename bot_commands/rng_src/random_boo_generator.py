@@ -12,7 +12,7 @@ class RandomBooGenerator:
 
     # Initializes the directory the Boo images are found.
     def __init_dir(self):
-        boo_dir = os.path.dirname(os.path.realpath(__file__)) + "\\boo"
+        boo_dir = os.path.dirname(os.path.realpath(__file__)) + "/boo"
 
         # If the directory exists, set up the table.
         # If the directory exists, but a certain Boo image is NOT found, the entry will not exist,
@@ -25,7 +25,7 @@ class RandomBooGenerator:
             for entry in boo_dict:
                 for img in image_list:
                     if img.startswith(entry):
-                        return_dict[entry] = f"{boo_dir}\\{img}"
+                        return_dict[entry] = f"{boo_dir}/{img}"
                         break
             return return_dict
 
