@@ -15,7 +15,16 @@ class Archive:
     # Add an entry, given a name, author, and value.
     # If value is a discord.Attachment, save the file, and add the entry to the database.
     # If value is a string, just add the entry to the database.
-    def add_entry(self):
+    def add_entry(self, name, author, guild_id, value):
+
+        # (type, name, author, value, path)
+        # name and author are given from arguments
+        # value is given if value is a string, and must be saved if it is an attachment.
+        # path is the path of the attachment provided, or None if there was no attachment.
+        # type is either SOUND or ARC, depending on these conditions:
+        # - if value is an attachment of filetypes .mp3, .wav, and .webm,
+        #   or if value is a 
+
         pass
 
     # Remove an entry, given a name, author, and guild_id.
