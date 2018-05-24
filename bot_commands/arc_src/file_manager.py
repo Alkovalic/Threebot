@@ -22,19 +22,19 @@ class FileManager:
 
         # If there are no attachments, return None.
         if not attachment:
-            return None
+            raise ValueError("No attachment provided!")
 
         # If the guild directory does not exist, create it!
         path = self.__create_guild_dir(guild_id)
         if path is None:  # Guild probably already exists.
-            path = f"{self._path}\\{guild_id}"
+            path = f"{self._path}/{guild_id}"
 
         # Create the path for the file.
-        filename = f"{path}\\{attachment.filename}"
+        filename = f"{path}/{attachment.filename}"
 
         # Check if the file exists.
         if os.path.isfile(filename):
-            return None
+            raise FileExistsError(filename)
 
         # At this point, we are ready to save the file.
         await attachment.save(filename)
@@ -44,18 +44,21 @@ class FileManager:
     # Note:  if all files are removed from a directory,
     #        the directory does not get removed.
     # Returns a discord.File object on success, or None on failure.
-    def remove_file(self, path):
+    async def remove_file(self, path):
 
         # Get the file, and handle the case where it doesn't exist.
-        result = self.get_file(path)
-        if result is not None:
+        result = await self.get_file(path)
+        if result and not result.isspace():
             os.remove(path)
 
         return result
 
     # Retrieves a file from a guild's directory.
     # Returns a discord.File object on success, or None on failure.
-    def get_file(self, path):
+    async def get_file(self, path):
+
+        if path is None:
+            return None
 
         # Check if the file exists.
         if not os.path.isfile(path):
@@ -70,10 +73,10 @@ class FileManager:
     # Returns the path to the new directory on success, or None on failure.
     def __create_guild_dir(self, guild_id):
 
-        new_directory = f"{self._path}\\{guild_id}"
+        new_directory = f"{self._path}/{guild_id}"
 
         try:
-            os.mkdir(new_directory)
+            os.makedirs(new_directory)
             return new_directory
         except OSError:  # Directory already exists, or something stupid happened.
             return None
