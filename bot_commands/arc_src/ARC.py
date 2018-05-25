@@ -1,4 +1,5 @@
 import asyncio
+import discord
 
 from discord.ext import commands
 from . import archive
@@ -23,9 +24,6 @@ class ARC:
                     brief="- Archive system.")
     async def archive(self, ctx):
         if ctx.invoked_subcommand is None:
-
-            # TODO:  USE THIS AS AN ON_MESSAGE FOR GETTING ARC ENTRIES?
-            print(ctx.message.content)
 
             # Otherwise, return usage information.
             return await ctx.send(f"Type {self._bot.command_prefix}help archive for usage.")
@@ -67,21 +65,50 @@ class ARC:
                 value = msg.attachments[0]
         
         try:
-            await self._arc_manager.add_entry(name, ctx.author.name, ctx.guild.id, self._bot.get_table_name(ctx.guild.id), value)
+            await self._arc_manager.add_entry(name, ctx.author.name, ctx.guild.id, value)
             return await ctx.send(f'Entry "{name}" added!')
         except ValueError as v:  # Entry failed due to an invalid value being passed.
             return await ctx.send(v.args[0])
         except FileExistsError as f:  # Entry failed due to an association or file already existing.
             return await ctx.send(f'Entry "{f.args[0]}" already exists!')
 
-    @archive.command(name="rm",
+    @archive.command(name="remove",
                  help="Removes a <name>:<data> association from the archive.\n"
                       "The author must either be the creator of the association, "
                       "or must have an administrative role.\n"
                       "Returns the data after removing the association.",
                  brief="- Removing name associations.")
-    async def rm(self, ctx, name):
-        print(f"removing {name}")
+    async def remove(self, ctx, name):
+        
+        # Check if the author is allowed to remove the entry.
+        override = False
+        if ctx.author.guild_permissions.administrator or ctx.author == ctx.guild.owner:
+            
+            # Debug prints, remove later. TODO
+            print("DBUG")
+            print(ctx.author.guild_permissions.administrator)
+            print(ctx.guild.owner == ctx.author)
+            override = True
+        
+        # Attempt to remove the entry.
+        try:
+            res = await self._arc_manager.remove_entry(name, ctx.author.name, ctx.guild.id, override=override)
+        except PermissionError as e:  # User not allowed to remove the entry.
+            return await ctx.send(e.args[0])
+        except ValueError as v:  # User attempted to remove a blank entry.
+            return await ctx.send(v.args[0])
+
+        # Check if removal is successful, and return the removed item if this is the case.
+        if res is None:
+            return await ctx.send(f"Entry {name} does not exist!")
+
+        # Removal successful.
+        await ctx.send(f"Entry {name} removed successfully:")
+        if isinstance(res, discord.File):
+            await ctx.send(file=res)
+            res.close()
+        else:
+            await ctx.send(res)
 
 
 def setup(bot):

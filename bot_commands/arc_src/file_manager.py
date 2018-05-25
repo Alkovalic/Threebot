@@ -48,13 +48,14 @@ class FileManager:
 
         # Get the file, and handle the case where it doesn't exist.
         result = await self.get_file(path)
-        if result and not result.isspace():
+        if result:
             os.remove(path)
 
         return result
 
     # Retrieves a file from a guild's directory.
     # Returns a discord.File object on success, or None on failure.
+    # Note:  the returned file must be closed after usage.
     async def get_file(self, path):
 
         if path is None:
@@ -64,10 +65,8 @@ class FileManager:
         if not os.path.isfile(path):
             return None
 
-        with open(path, 'rb') as file:
-            result = discord.File(file)
-
-        return result
+        file = open(path, 'rb')
+        return discord.File(file, filename=os.path.basename(file.name))
 
     # Creates a directory for a guild, if none exists.
     # Returns the path to the new directory on success, or None on failure.
