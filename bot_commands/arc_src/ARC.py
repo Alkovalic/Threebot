@@ -65,7 +65,7 @@ class ARC:
                 value = msg.attachments[0]
         
         try:
-            await self._arc_manager.add_entry(name, ctx.author.name, ctx.guild.id, value)
+            await self._arc_manager.add_entry(name, ctx.author.id, ctx.guild.id, value)
             return await ctx.send(f'Entry "{name}" added!')
         except ValueError as v:  # Entry failed due to an invalid value being passed.
             return await ctx.send(v.args[0])
@@ -94,13 +94,14 @@ class ARC:
         try:
             res = await self._arc_manager.remove_entry(name, ctx.author.name, ctx.guild.id, override=override)
         except PermissionError as e:  # User not allowed to remove the entry.
-            return await ctx.send(e.args[0])
+            owner = ctx.guild.get_member(e.args[0])
+            return await ctx.send(f"You are unauthorized to remove entry created by {owner}!")
         except ValueError as v:  # User attempted to remove a blank entry.
             return await ctx.send(v.args[0])
 
         # Check if removal is successful, and return the removed item if this is the case.
         if res is None:
-            return await ctx.send(f"Entry {name} does not exist!")
+            return await ctx.send(f"Entry '{name}' does not exist!")
 
         # Removal successful.
         await ctx.send(f"Entry {name} removed successfully:")

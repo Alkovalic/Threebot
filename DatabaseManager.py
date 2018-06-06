@@ -48,7 +48,7 @@ class DatabaseManager:
         execute_input = (rf"CREATE TABLE {table_name}("
                          "type TEXT, "  # The type of entry.  ie SOUND, ARC, etc
                          "name TEXT, "  # The name of the entry. 
-                         "author TEXT, "  # The author of the entry
+                         "authorid INT, "  # The authorid of the entry
                          "value TEXT, "  # The value of the entry.
                          "path TEXT, "   # The path for the entry.  Optional.
                          "timestamp REAL)")  # The unix timestap the entry was placed.  Optional.
@@ -58,7 +58,7 @@ class DatabaseManager:
         defaults = self.get_default_entries()
         for args in defaults:
             entry = (f"INSERT INTO {table_name}"
-                     f"(type, name, author, value, path) VALUES (?, ?, ?, ?, ?)")
+                     f"(type, name, authorid, value, path) VALUES (?, ?, ?, ?, ?)")
             await c.execute(entry, args)
 
         await c.commit()
@@ -99,7 +99,7 @@ class DatabaseManager:
                 # From here, the entry doesn't already exist, and we can add it.
 
                 execute_input = (rf"INSERT INTO {guild_table} "
-                                 rf"(type, name, author, value, path, timestamp) VALUES (?, ?, ?, ?, ?, ?)")
+                                 rf"(type, name, authorid, value, path, timestamp) VALUES (?, ?, ?, ?, ?, ?)")
                 await c.execute(execute_input, (values + (time.time(),)))
                 await c.commit()
                 await c.close()
@@ -127,10 +127,10 @@ class DatabaseManager:
 
                 # At this point, the entry exists
                 # Check if the author is able to remove the entry.
-                if check[2] != author and not override:
+                if check.authorid != author and not override:
                     await c.close()
                     await conn.close()
-                    raise PermissionError(f"User {author} is not able to remove entry by {check[2]}")
+                    raise PermissionError(check.authorid)
 
                 # From here, we are able to remove the entry from the database.
                 execute_input = (rf"DELETE FROM {guild_table} "
