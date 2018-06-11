@@ -1,6 +1,6 @@
 import discord
 import os
-
+import youtube_dl
 
 class FileManager:
 
@@ -39,6 +39,61 @@ class FileManager:
         # At this point, we are ready to save the file.
         await attachment.save(filename)
         return filename
+
+    # Downloads a video from a given youtube URL.
+    # If the url is live, a playlist, or longer than 10 minutes,
+    #  do nothing, and return None.
+    # Ignores playlists.
+    # Raises FileExistsError if the video has already been downloaded.
+    async def add_ytlink(self, url, guild_id):
+
+        path = None
+        
+        # Before downloading anything, check if the url is a playlist.
+        if "&list=" in url or "playlist" in url:
+            return None
+
+        # Get information from the URL, and set up the path for it.
+        with youtube_dl.YoutubeDL( {'quiet': True} ) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+            # Checking invalid urls.
+
+            if int(info['duration']) > 600:
+                return None
+            try:
+                if info['is_live']:
+                    return None
+            except KeyError:
+                pass
+
+            # Checking if the file already exists in the directory.
+            for f in os.listdir(f'{self._path}/{guild_id}'):
+                if info['id'] in f:
+                    raise FileExistsError(f'{self._path}/{guild_id}/{f}')
+
+        # This hook gets called throughout the actual download,
+        #  and saves the path when the download finishes.
+        def hook(dl):
+            nonlocal path  # Uses the path outside of this scope, declared earlier in add_ytlink.
+            if dl['status'] == 'finished':
+                path = dl['filename']
+
+        args = {
+            'quiet': True,
+            'format': '43/best', # Format 43 is for webms.
+            'outtmpl': f'{self._path}/{guild_id}/%(title)s_%(id)s.%(ext)s',
+            'noplaylist': True,
+            'progress_hooks': [hook],
+            } 
+
+        with youtube_dl.YoutubeDL(args) as ydl:
+            try:
+                ydl.download([url])
+            except youtube_dl.SameFileError:
+                raise FileExistsError
+
+        return path
 
     # Removes a file from a guild's directory.
     # Note:  if all files are removed from a directory,

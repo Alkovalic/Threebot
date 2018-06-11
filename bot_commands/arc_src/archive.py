@@ -1,5 +1,7 @@
 import os
 import discord
+import youtube_dl
+
 from bot_commands.arc_src import file_manager
 
 
@@ -26,7 +28,7 @@ class Archive:
         # path is the path of the attachment provided, or None if there was no attachment.
         # type is either SOUND or ARC, depending on these conditions:
         # - if value is an attachment of filetypes .mp3, .wav, and .webm,
-        #   or if value is a Youtube URL, the type will be SOUND.
+        #   or if value is a valid Youtube URL, the type will be SOUND.
         # - otherwise, the type will be ARC.
 
         # Make sure name is not none.
@@ -58,21 +60,10 @@ class Archive:
             # Handle case where the file already exists.
             # Raise an exception that has the entry name as the argument.
             except FileExistsError as e:
-                async with self._bot.pool.acquire() as conn:
-                    async with conn.cursor() as c:
-
-                        # Find the values associated with the path.
-                        execute_input = (rf"SELECT * FROM {guild_table} "
-                                         r"WHERE (type='ARC' OR type='SOUND') AND path=(?)")
-                        await c.execute(execute_input, e.args[0])
-                        result = await c.fetchone()
-                        await c.close()
-                        await conn.close()
-
-                        # Raise an exception, with the found entry as the result.
-                        # NOTE:  If a file in the database is removed, without removing the
-                        #        entry in the database, this may cause an error.
-                        raise FileExistsError(result.name)
+                # Raise an exception, with the found entry as the result.
+                # NOTE:  If a file in the database is removed, without removing the
+                #        entry in the database, this may cause an error.
+                raise FileExistsError(await self.find_path_name_assoc(e.args[0], guild_table))
         
         # Handle special cases when value is a string.
         else:
@@ -85,9 +76,15 @@ class Archive:
 
             # Handle Youtube URLs.
             if "youtu.be" in value or "watch?v=" in value:
-                print("pretending to handle youtube videos")
-                entry_type = "SOUND"
-                entry_path = None  # This would be the path of the downloaded youtube video.
+                try:
+                    entry_path = await self._file_manager.add_ytlink(value, guild_id)
+                except FileExistsError as e:
+                    # Same as above:  raise the name of the entry as an exception.
+                    raise FileExistsError(await self.find_path_name_assoc(e.args[0], guild_table))
+            
+            if entry_path:
+                entry_type = 'SOUND'
+
 
         # At this point, everything is ready to be added to the database.
 
@@ -130,8 +127,16 @@ class Archive:
         
         # Handle the case where the entry was a file.
         elif result.path:
+            # Getting filesize.
+            is_oversized = (os.stat(result.path).st_size > 8000000)
             file = await self._file_manager.remove_file(result.path)
-            return file
+            
+            # If the file is too large to upload, just upload the value.
+            if is_oversized:
+                file.close()
+                return result.value
+            else:
+                return file
 
         # Handle the case where the entry was a string.
         else:
@@ -143,3 +148,20 @@ class Archive:
     # Returns either a discord.File object, or a string.
     async def get_entry(self, name : str, guild_id):
         pass
+
+    # HELPER METHODS #
+
+    # find_path_name_assoc returns the name of the entry associated with the given path.
+    async def find_path_name_assoc(self, path, guild_table):
+        async with self._bot.pool.acquire() as conn:
+            async with conn.cursor() as c:
+
+                # Find the values associated with the path.
+                execute_input = (rf"SELECT * FROM {guild_table} "
+                                 r"WHERE (type='ARC' OR type='SOUND') AND path=(?)")
+                await c.execute(execute_input, path)
+                result = await c.fetchone()
+                await c.close()
+                await conn.close()
+                
+                return result.name
