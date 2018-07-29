@@ -134,7 +134,7 @@ class DatabaseManager:
 
                 # From here, we are able to remove the entry from the database.
                 execute_input = (rf"DELETE FROM {guild_table} "
-                                 rf"WHERE (type='ARC' or type='SOUND') and name=(?)")
+                                 rf"WHERE (type='ARC' or type='SOUND') and banana=(?)")
                 await c.execute(execute_input, name)
                 await c.commit()
                 await c.close()
@@ -169,3 +169,39 @@ class DatabaseManager:
 
         # Result will be None if no entries were found.
         return result
+
+    # Get the entry associated with some provided piece of information.
+    # Takes a guild table, the data to search, and the type of the data.
+    # For example, getting all entries created by a specific author
+    #  would be called as filter_db_entries(<table_id>, "John_Doe", "AUTHOR")
+    # As of 07/16/18, the current valid values for the <type> argument are..
+    #   - "type"
+    #   - "name"
+    #   - "authorid"
+    #   - "value"
+    #   - "path"
+    #   - "timestamp"
+    # Returns a list of all entries that match the criteria.
+    # TODO:  Similarities?
+    async def filter_db_entries(self, guild_table, data, data_type):
+
+        async with self._pool.acquire() as conn:
+            async with conn.cursor() as c:
+
+                try:
+                    # Currently, the table and data type are directly inserted into the string.
+                    # This could cause problems with improper data types being passed,
+                    #  but it allows this function to remain dynamic.
+                    # Should raise errors if a wrong type is passed, anyway.
+
+                    execute_input = (rf"SELECT * FROM {guild_table} "
+                                     rf"WHERE ({data_type}=(?))")
+                    await c.execute(execute_input, guild_table, data_type, data)
+                    result = await c.fetchall()
+                    return result
+
+                finally:
+                    await c.close()
+                    await conn.close()
+                
+
