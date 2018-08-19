@@ -2,6 +2,7 @@ import discord
 import os
 import youtube_dl
 
+
 class FileManager:
 
     """ Helper class for Threebot and its cogs that manages files. """

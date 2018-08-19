@@ -134,7 +134,7 @@ class DatabaseManager:
 
                 # From here, we are able to remove the entry from the database.
                 execute_input = (rf"DELETE FROM {guild_table} "
-                                 rf"WHERE (type='ARC' or type='SOUND') and banana=(?)")
+                                 rf"WHERE (type='PIN' or type='SOUND') and name=(?)")
                 await c.execute(execute_input, name)
                 await c.commit()
                 await c.close()
@@ -156,7 +156,7 @@ class DatabaseManager:
 
         # Find the values associated with the name.
         execute_input = (rf"SELECT * FROM {guild_table} "
-                         r"WHERE (type='ARC' OR type='SOUND') AND name=(?)")
+                         r"WHERE (type='PIN' OR type='SOUND') AND name=(?)")
         await c.execute(execute_input, name)
 
         # Save the result.  If there's more than one entry, something went wrong.
@@ -170,6 +170,11 @@ class DatabaseManager:
         # Result will be None if no entries were found.
         return result
 
+    # Returns a given number of names similar to a given string.
+    #
+    async def search_db_entries(self):
+        pass
+
     # Get the entry associated with some provided piece of information.
     # Takes a guild table, the data to search, and the type of the data.
     # For example, getting all entries created by a specific author
@@ -182,7 +187,6 @@ class DatabaseManager:
     #   - "path"
     #   - "timestamp"
     # Returns a list of all entries that match the criteria.
-    # TODO:  Similarities?
     async def filter_db_entries(self, guild_table, data, data_type):
 
         async with self._pool.acquire() as conn:
@@ -196,7 +200,7 @@ class DatabaseManager:
 
                     execute_input = (rf"SELECT * FROM {guild_table} "
                                      rf"WHERE ({data_type}=(?))")
-                    await c.execute(execute_input, guild_table, data_type, data)
+                    await c.execute(execute_input, data)
                     result = await c.fetchall()
                     return result
 

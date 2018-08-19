@@ -2,12 +2,12 @@ import os
 import discord
 import youtube_dl
 
-from bot_commands.arc_src import file_manager
+from bot_commands.pin_src import file_manager
 
 
-class Archive:
+class PinManager:
 
-    """ Helper class for arc that handles database transactions and file storage. """
+    """ Helper class for pin that handles database transactions and file storage. """
 
     def __init__(self, bot):
         self._bot = bot
@@ -26,10 +26,10 @@ class Archive:
         # name and author are given from arguments
         # value is given if value is a string, and must be saved if it is an attachment.
         # path is the path of the attachment provided, or None if there was no attachment.
-        # type is either SOUND or ARC, depending on these conditions:
+        # type is either SOUND or PIN, depending on these conditions:
         # - if value is an attachment of filetypes .mp3, .wav, and .webm,
         #   or if value is a valid Youtube URL, the type will be SOUND.
-        # - otherwise, the type will be ARC.
+        # - otherwise, the type will be PIN.
 
         # Make sure name is not none.
         if name.isspace() or not name:
@@ -37,7 +37,7 @@ class Archive:
 
         # First, get the type of entry that has been passed.
 
-        entry_type = "ARC"
+        entry_type = "PIN"
         entry_path = None
         entry_value = None
 
@@ -63,7 +63,9 @@ class Archive:
                 # Raise an exception, with the found entry as the result.
                 # NOTE:  If a file in the database is removed, without removing the
                 #        entry in the database, this may cause an error.
-                raise FileExistsError(await self.find_path_name_assoc(e.args[0], guild_table))
+                asdf = await self._db_manager.filter_db_entries(guild_table, e.args[0], "path")
+                print(asdf)
+                raise FileExistsError((await self._db_manager.filter_db_entries(guild_table, e.args[0], "path"))[0].name)
         
         # Handle special cases when value is a string.
         else:
@@ -80,11 +82,11 @@ class Archive:
                     entry_path = await self._file_manager.add_ytlink(value, guild_id)
                 except FileExistsError as e:
                     # Same as above:  raise the name of the entry as an exception.
-                    raise FileExistsError(await self.find_path_name_assoc(e.args[0], guild_table))
-            
+                    # raise FileExistsError(await self.find_path_name_assoc(e.args[0], guild_table))
+                    raise FileExistsError((await self._db_manager.filter_db_entries(guild_table, e.args[0], "path"))[0].name)
+
             if entry_path:
                 entry_type = 'SOUND'
-
 
         # At this point, everything is ready to be added to the database.
 
@@ -99,13 +101,12 @@ class Archive:
                 pass
             raise FileExistsError(name)
 
-
     # Remove an entry, given a name, author, and guild_id.
     # If the author is not the owner of the entry, raise the error.
     # Else, remove the entry, and return the file as a string or a discord.File object.
     # If override is true, remove the entry regardless of ownership.
     async def remove_entry(self, name : str, author : str, guild_id, override=False):
-        
+
         # Check if the name isn't blank.
         if name.isspace() or not name:
             raise ValueError("Key (name) cannot be empty!")
@@ -158,7 +159,7 @@ class Archive:
 
                 # Find the values associated with the path.
                 execute_input = (rf"SELECT * FROM {guild_table} "
-                                 r"WHERE (type='ARC' OR type='SOUND') AND path=(?)")
+                                 r"WHERE (type='PIN' OR type='SOUND') AND path=(?)")
                 await c.execute(execute_input, path)
                 result = await c.fetchone()
                 await c.close()
