@@ -63,8 +63,6 @@ class PinManager:
                 # Raise an exception, with the found entry as the result.
                 # NOTE:  If a file in the database is removed, without removing the
                 #        entry in the database, this may cause an error.
-                asdf = await self._db_manager.filter_db_entries(guild_table, e.args[0], "path")
-                print(asdf)
                 raise FileExistsError((await self._db_manager.filter_db_entries(guild_table, e.args[0], "path"))[0].name)
         
         # Handle special cases when value is a string.
@@ -82,7 +80,6 @@ class PinManager:
                     entry_path = await self._file_manager.add_ytlink(value, guild_id)
                 except FileExistsError as e:
                     # Same as above:  raise the name of the entry as an exception.
-                    # raise FileExistsError(await self.find_path_name_assoc(e.args[0], guild_table))
                     raise FileExistsError((await self._db_manager.filter_db_entries(guild_table, e.args[0], "path"))[0].name)
 
             if entry_path:
@@ -149,20 +146,3 @@ class PinManager:
     # Returns either a discord.File object, or a string.
     async def get_entry(self, name : str, guild_id):
         pass
-
-    # HELPER METHODS #
-
-    # find_path_name_assoc returns the name of the entry associated with the given path.
-    async def find_path_name_assoc(self, path, guild_table):
-        async with self._bot.pool.acquire() as conn:
-            async with conn.cursor() as c:
-
-                # Find the values associated with the path.
-                execute_input = (rf"SELECT * FROM {guild_table} "
-                                 r"WHERE (type='PIN' OR type='SOUND') AND path=(?)")
-                await c.execute(execute_input, path)
-                result = await c.fetchone()
-                await c.close()
-                await conn.close()
-                
-                return result.name

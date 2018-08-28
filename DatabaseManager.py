@@ -102,8 +102,6 @@ class DatabaseManager:
                                  rf"(type, name, authorid, value, path, timestamp) VALUES (?, ?, ?, ?, ?, ?)")
                 await c.execute(execute_input, (values + (time.time(),)))
                 await c.commit()
-                #await c.close()
-                #await conn.close()
                 return True
 
     # Removes an entry from the database, given a guild table, and the name of the entry.
@@ -121,15 +119,11 @@ class DatabaseManager:
                 check = await self.get_db_entry(guild_table, name, cursor=c)
 
                 if check is None:
-                    #await c.close()
-                    #await conn.close()
                     return None
 
                 # At this point, the entry exists
                 # Check if the author is able to remove the entry.
                 if check.authorid != author and not override:
-                    #await c.close()
-                    #await conn.close()
                     raise PermissionError(check.authorid)
 
                 # From here, we are able to remove the entry from the database.
@@ -137,8 +131,6 @@ class DatabaseManager:
                                  rf"WHERE (type='PIN' or type='SOUND') and name=(?)")
                 await c.execute(execute_input, name)
                 await c.commit()
-                #await c.close()
-                #await conn.close()
                 return check
 
     # Get an entry from the database, given a guild table, and the name of the entry.
@@ -192,7 +184,6 @@ class DatabaseManager:
         async with self._pool.acquire() as conn:
             async with conn.cursor() as c:
 
-                #try:
                 # Currently, the table and data type are directly inserted into the string.
                 # This could cause problems with improper data types being passed,
                 #  but it allows this function to remain dynamic.
@@ -203,9 +194,5 @@ class DatabaseManager:
                 await c.execute(execute_input, data)
                 result = await c.fetchall()
                 return result
-
-                #finally:
-                #    await c.close()
-                #    await conn.close()
                 
 
