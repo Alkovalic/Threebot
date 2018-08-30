@@ -142,7 +142,25 @@ class PinManager:
         
 
     # Get an entry, given a name and guild_id.
-    # TODO:  IMPLEMENT SUGGESTIONS
     # Returns either a discord.File object, or a string.
     async def get_entry(self, name : str, guild_id):
         pass
+
+    # Gets a list of entries similar to the given name.
+    # If the given name is a single letter, gets a list of
+    #  entries that start with that letter.
+    async def search_entries(self, name : str, guild_id):
+        
+        # Get all entries similar to the given name.
+        guild_table = self._db_manager.get_table_name(guild_id)
+        entries = await self._db_manager.search_db_entries(guild_table, name)
+
+        # Clean up the result to just be a list of strings.
+
+        result = []
+        for i in entries:
+            result.append(i[0])
+
+        return result
+
+

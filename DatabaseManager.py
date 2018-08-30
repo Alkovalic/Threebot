@@ -162,10 +162,23 @@ class DatabaseManager:
         # Result will be None if no entries were found.
         return result
 
-    # Returns a given number of names similar to a given string.
-    #
-    async def search_db_entries(self):
-        pass
+    # Returns a list of names similar to a given string.
+    # If the string is a single character, return all names starting with that letter.
+    async def search_db_entries(self, guild_table, name):
+        async with self._pool.acquire() as conn:
+            async with conn.cursor() as c:
+            
+                execute_input = (rf"SELECT name FROM {guild_table} "
+                                 rf"WHERE name LIKE (?)")
+
+                if len(name) == 1:  # Single letter input.
+                    await c.execute(execute_input, f"{name}%")
+                else:
+                    await c.execute(execute_input, f"%{name}%")
+
+                result = await c.fetchall()
+                return result
+                
 
     # Get the entry associated with some provided piece of information.
     # Takes a guild table, the data to search, and the type of the data.

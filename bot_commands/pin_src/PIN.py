@@ -18,25 +18,17 @@ class PIN:
             await asyncio.sleep(delay=1, loop=self._bot.loop)
 
         self._pin_manager = pin_manager.PinManager(self._bot)
+    
 
-    @commands.group(help=f"Pin system that uses a key -> value layout to access saved items.\n"
-                         f"To access a pinned item, simply do '~<name>'.",  # Hard coded command prefix.
-                    brief="- Pin system.")
-    async def pin(self, ctx):
-        if ctx.invoked_subcommand is None:
-
-            # Otherwise, return usage information.
-            return await ctx.send(f"Type {self._bot.command_prefix}help pin for usage.")
-
-    @pin.command(name="add",
+    @commands.command(name="pin",
                  help="Adds a <name>:<data> association to the list of pins.\n"
                       "If no <data> is passed, the user has 20 seconds to upload a file to associate with the name.\n"
                       "  Notes:  If the file is larger than 8 MB, it will not be added to the list of pins.\n"
                       "          If the file already exists, the <name> for the existing file will be returned, "
                       "and the association will not be made.\n"
                       "          Adding a sound file to the list of pins will add it to the soundboard.",
-                 brief="- Creating name associations.")
-    async def add(self, ctx, name, data=None):\
+                 brief="- Pins a message or file.")
+    async def pin(self, ctx, name, data=None):\
 
         if not name:
 
@@ -72,13 +64,14 @@ class PIN:
         except FileExistsError as f:  # Entry failed due to an association or file already existing.
             return await ctx.send(f'Entry "{f.args[0]}" already exists!')
 
-    @pin.command(name="remove",
+
+    @commands.command(name="unpin",
                  help="Removes a <name>:<data> association from the list of pins.\n"
                       "The author must either be the creator of the association, "
                       "or must have an administrative role.\n"
                       "Returns the data after removing the association.",
-                 brief="- Removing name associations.")
-    async def remove(self, ctx, name=None):
+                 brief="- Removes a pin.")
+    async def unpin(self, ctx, name=None):
 
         if not name:
             return await ctx.send("No name provided!")
@@ -94,8 +87,6 @@ class PIN:
             res = await self._pin_manager.remove_entry(name, ctx.author.id, ctx.guild.id, override=override)
         except PermissionError as e:  # User not allowed to remove the entry.
             owner = ctx.guild.get_member(e.args[0])
-            print(e)
-            print(e.args[0])
             return await ctx.send(f"You are unauthorized to remove entry created by {owner}!")
         except ValueError as v:  # User attempted to remove a blank entry.
             return await ctx.send(v.args[0])
@@ -111,6 +102,39 @@ class PIN:
             res.close()
         else:
             await ctx.send(res)
+
+
+    @commands.command(name="search",
+                help="Finds pins similar to a given search term."
+                     "If the term is a single letter, returns all pins that start with that letter.",
+                     brief="- Searches pins.")
+    async def search(self, ctx, name=None):
+        
+        if not name:
+            return await ctx.send("No search term provided!")
+
+        # Get a list of similar entries from the database.
+        results = await self._pin_manager.search_entries(name, ctx.guild.id)
+
+        # No results found.
+        if not results:  # Quality wording.
+            if len(name) == 1:
+                return await ctx.send(f"No entries starting with {name} found.")
+            return await ctx.send(f"No entries similar to {name} found.")
+
+        # Create a formatted list of results, cutting off the list if more than 20 results are found.
+
+        msg = f'Results for search term "{name}":\n'
+        ptr = 0
+        for i in results:
+            if ptr > 20:
+                msg += f"... ({len(results)-ptr} more)\n"
+                break
+            else:
+                msg += f"{i}\n"
+                ptr += 1
+
+        return await ctx.send(f"```\n{msg}```")
 
 
 def setup(bot):
