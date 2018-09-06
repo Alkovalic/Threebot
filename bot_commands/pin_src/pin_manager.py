@@ -13,7 +13,7 @@ class PinManager:
         self._bot = bot
         self._db_manager = bot.db_manager
         self._file_manager = file_manager.FileManager(os.getcwd() + "/guild_file_data")
-        self._sound_extentions = [".webm", ".mp3", ".wav"]
+        self._sound_extensions = [".webm", ".mp3", ".wav"]
 
     # PRIMARY METHODS #
 
@@ -33,7 +33,7 @@ class PinManager:
 
         # Make sure name is not none.
         if name.isspace() or not name:
-            raise ValueError("Key (name) cannot be empty!")
+            raise ValueError("Name cannot be an empty value!")
 
         # First, get the type of entry that has been passed.
 
@@ -48,7 +48,7 @@ class PinManager:
         if isinstance(value, discord.Attachment):
             
             # Check for sound related files.
-            for e in self._sound_extentions:
+            for e in self._sound_extensions:
                 if value.filename.endswith(e):
                     entry_type = "SOUND"
                     break
@@ -106,7 +106,7 @@ class PinManager:
 
         # Check if the name isn't blank.
         if name.isspace() or not name:
-            raise ValueError("Key (name) cannot be empty!")
+            raise ValueError("Name cannot be an empty value!")
 
         # Attempt to remove the given entry.
         guild_table = self._db_manager.get_table_name(guild_id)
@@ -142,9 +142,55 @@ class PinManager:
         
 
     # Get an entry, given a name and guild_id.
-    # Returns either a discord.File object, or a string.
+    # Returns either a discord.File object or a string.
+    # Returns None when the entry isn't found.
     async def get_entry(self, name : str, guild_id):
-        pass
+        
+        if name.isspace() or not name:
+            raise ValueError("Name cannot be an empty value!")
+
+        # Get the entry associated with the given name.
+        guild_table = self._db_manager.get_table_name(guild_id)
+        details = await self._db_manager.get_db_entry(guild_table, name)
+
+        # No details found, no entry found.
+        if details is None:
+            return None
+
+        # If a path exists, open and return it.
+        if details.path:
+            return await self._file_manager.get_file(details.path)
+
+        # At this point, the only reasonable possibility is the value being a string.
+        return details.value
+
+        
+
+    # Returns both detailed information about the entry,
+    #  and, if a file is associated with the entry, said file
+    #  as a discord.File object.
+    # The information is returned as a tuple (<info tuple>, File)
+    # Returns None if the entry is not found.
+    async def get_entry_details(self, name : str, guild_id):
+        
+        if name.isspace() or not name:
+            raise ValueError("Name cannot be an empty value!")
+
+        # Get the entry associated with the given name.
+        guild_table = self._db_manager.get_table_name(guild_id)
+        details = await self._db_manager.get_db_entry(guild_table, name)
+
+        # No details found, no entry found.
+        if details is None:
+            return None
+
+        file = None
+        # If a path exists, open and return it.
+        if details.path:
+            file = await self._file_manager.get_file(details.path)
+
+        # Return all info gathered.
+        return (details, file)
 
     # Gets a list of entries similar to the given name.
     # If the given name is a single letter, gets a list of

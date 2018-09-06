@@ -12,12 +12,53 @@ class PIN:
         self._bot = bot
         self._pin_manager = None
 
+    # PIN's on_ready waits for the bot's connection pool to initialize before initializing the PinManager.
     async def on_ready(self):
 
         while not self._bot.pool:
             await asyncio.sleep(delay=1, loop=self._bot.loop)
 
         self._pin_manager = pin_manager.PinManager(self._bot)
+
+    # PIN's on_message reads every command sent to the bot,
+    #  and checks if the command is found in the list of pins.
+    # If it is found, return the value or path associated with it,
+    #  unless it is a sound file. (Filename ends with certain extensions.)
+    # Ignores calls to actual commands.
+    async def on_message(self, message):
+
+        if message.content.startswith(self._bot.command_prefix):
+
+            # Remove the command prefix, and get the first word sent.
+            cmd = message.content.lstrip(self._bot.command_prefix).split(" ")[0]
+
+            # Handle empty case.
+            if not cmd:
+                return
+            
+            # Ignore all built-in commands.
+            for i in self._bot.commands:
+                if cmd == i.name:
+                    return
+            
+            # Look up the name in the list of pins.
+            result = await self._pin_manager.get_entry(cmd, message.guild.id)
+
+            # If result is None, no entry was found, so we ignore the request.
+            if not result:
+                return
+
+            # If result is a discord.File object, check if it is an audio file, 
+            #  and ignore it if it is.
+            if isinstance(result, discord.File):
+                for ext in self._pin_manager._sound_extensions:
+                    if result.filename.endswith(ext):
+                        return
+                return await message.channel.send(file=result)
+
+            # At this point, the pin was associated with a string, so return the string.
+            return await message.channel.send(result)
+        
     
 
     @commands.command(name="pin",
@@ -33,6 +74,10 @@ class PIN:
         if not name:
 
             return await ctx.send("No name provided!")
+
+        for cmd in self._bot.commands:
+            if name == cmd.name:
+                return await ctx.send("Name provided is a built-in command!")
 
         value = data
         
@@ -112,6 +157,8 @@ class PIN:
         
         if not name:
             return await ctx.send("No search term provided!")
+
+        await self._pin_manager.get_entry(name, ctx.guild.id)
 
         # Get a list of similar entries from the database.
         results = await self._pin_manager.search_entries(name, ctx.guild.id)

@@ -148,7 +148,7 @@ class DatabaseManager:
 
         # Find the values associated with the name.
         execute_input = (rf"SELECT * FROM {guild_table} "
-                         r"WHERE (type='PIN' OR type='SOUND') AND name=(?)")
+                         rf"WHERE (type='PIN' OR type='SOUND') AND name=(?)")
         await c.execute(execute_input, name)
 
         # Save the result.  If there's more than one entry, something went wrong.
