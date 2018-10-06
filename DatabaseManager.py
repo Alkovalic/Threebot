@@ -42,6 +42,7 @@ class DatabaseManager:
         # Check if the table already exists.
         check = await c.tables(table=table_name, tableType='TABLE')
         if check.fetchone():
+            await c.close()
             return
 
         # Create the table.
@@ -92,8 +93,6 @@ class DatabaseManager:
 
                 # Check if the entry exists, and return False if it does.
                 if await self.get_db_entry(guild_table, values[1], cursor=c):
-                    #await c.close()
-                    #await conn.close()
                     return False
 
                 # From here, the entry doesn't already exist, and we can add it.
@@ -136,31 +135,15 @@ class DatabaseManager:
     # Get an entry from the database, given a guild table, and the name of the entry.
     # Returns the entry tuple on success, and None on failure.
     # Failure typically includes the entry not existing.
-    async def get_db_entry(self, guild_table, name, cursor=None):
+    async def get_db_entry(self, guild_table, name):
 
-        # Handling case where no db cursor is passed.
-        conn = None
-        if cursor is None:
-            conn = await self._pool.acquire()
-            c = await conn.cursor()
-        else:
-            c = cursor
-
-        # Find the values associated with the name.
-        execute_input = (rf"SELECT * FROM {guild_table} "
-                         rf"WHERE (type='PIN' OR type='SOUND') AND name=(?)")
-        await c.execute(execute_input, name)
-
-        # Save the result.  If there's more than one entry, something went wrong.
-        result = await c.fetchone()
-
-        # Close connections if we had to make them earlier.
-        if conn is not None:
-            await c.close()
-            await conn.close()
-
-        # Result will be None if no entries were found.
-        return result
+        async with self._pool.acquire() as conn:
+            async with conn.cursor() as c:
+                execute_input = (rf"SELECT * FROM {guild_table} "
+                                 rf"WHERE (type='PIN' OR type='SOUND') AND name=(?)")
+                await c.execute(execute_input, name)
+                result = await c.fetchone()
+                return result
 
     # Returns a list of names similar to a given string.
     # If the string is a single character, return all names starting with that letter.
