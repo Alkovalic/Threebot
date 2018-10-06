@@ -48,7 +48,7 @@ class DatabaseManager:
         execute_input = (rf"CREATE TABLE {table_name}("
                          "type TEXT, "  # The type of entry.  ie SOUND, ARC, etc
                          "name TEXT, "  # The name of the entry. 
-                         "authorid INT, "  # The authorid of the entry
+                         "authorid TEXT, "  # The authorid of the entry
                          "value TEXT, "  # The value of the entry.
                          "path TEXT, "   # The path for the entry.  Optional.
                          "timestamp REAL)")  # The unix timestap the entry was placed.  Optional.

@@ -1,6 +1,7 @@
 import asyncio
 import discord
 
+from time import strftime
 from discord.ext import commands
 from . import pin_manager
 
@@ -11,6 +12,17 @@ class PIN:
     def __init__(self, bot):
         self._bot = bot
         self._pin_manager = None
+        self._image_extensions = [".gif", ".jpg", ".jpeg", ".png"]
+
+    # Checks if a file ends with an image extension.
+    def is_image(self, filename):
+        if filename is None:
+            return False
+        for ext in self._image_extensions:
+            if (filename.lower()).endswith(ext):
+                return True
+        return False
+
 
     # PIN's on_ready waits for the bot's connection pool to initialize before initializing the PinManager.
     async def on_ready(self):
@@ -30,7 +42,7 @@ class PIN:
         if message.content.startswith(self._bot.command_prefix):
 
             # Remove the command prefix, and get the first word sent.
-            cmd = message.content.lstrip(self._bot.command_prefix).split(" ")[0]
+            cmd = message.content.lstrip(self._bot.command_prefix)
 
             # Handle empty case.
             if not cmd:
@@ -58,8 +70,7 @@ class PIN:
 
             # At this point, the pin was associated with a string, so return the string.
             return await message.channel.send(result)
-        
-    
+
 
     @commands.command(name="pin",
                  help="Adds a <name>:<data> association to the list of pins.\n"
@@ -152,7 +163,7 @@ class PIN:
     @commands.command(name="search",
                 help="Finds pins similar to a given search term."
                      "If the term is a single letter, returns all pins that start with that letter.",
-                     brief="- Searches pins.")
+                brief="- Searches pins.")
     async def search(self, ctx, name=None):
         
         if not name:
@@ -183,6 +194,39 @@ class PIN:
 
         return await ctx.send(f"```\n{msg}```")
 
+
+    @commands.command(name="info",
+                help="Gets information about a given pin."
+                     "Return the file associated with it, no matter what type.",
+                brief="- Pin details.")
+    async def info(self, ctx, *, name=None):
+
+        if name is None:
+            return await ctx.send("No entry provided!")
+
+        result = await self._pin_manager.get_entry_details(name, ctx.guild.id)
+
+        if result is None:
+            return await ctx.send("Entry not found!")
+
+        # Get the author's discord.Member representation, and gather info from it.
+        # Also prepare the info from result for the embed.
+        author = ctx.guild.get_member(int(result[0].authorid))
+        author_name = author.display_name
+        author_avatar = author.avatar_url
+
+        date = strftime("%B %d, %Y")
+        pin_name = result[0].name
+        pin_value = result[0].value
+        if pin_value is None and not self.is_image(result[1].filename):
+            pin_value = "User upload."
+        
+        embed=discord.Embed(title=pin_name, description=pin_value, color=0xfffc00)
+        embed.set_author(name=author_name,icon_url=author_avatar)
+        embed.set_footer(text=date)
+        if pin_value is None and self.is_image(result[1].filename):
+            embed.set_image(url=f'attachment://{result[1].filename}')
+        return await ctx.send(embed=embed, file=result[1])
 
 def setup(bot):
     bot.add_cog(PIN(bot))

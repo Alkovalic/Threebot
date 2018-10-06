@@ -164,7 +164,6 @@ class PinManager:
         # At this point, the only reasonable possibility is the value being a string.
         return details.value
 
-        
 
     # Returns both detailed information about the entry,
     #  and, if a file is associated with the entry, said file
