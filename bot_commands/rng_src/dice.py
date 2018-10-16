@@ -6,8 +6,8 @@ def is_valid_roll(arg):
 
     # Setting up check.
     default_check = arg.split("d")
-    faces = default_check[0]
-    amount = default_check[1]
+    amount = default_check[0]
+    faces = default_check[1]
 
     # Check if both arguments are numeric.
     if not faces.isnumeric() or not amount.isnumeric():

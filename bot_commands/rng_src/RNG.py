@@ -38,10 +38,6 @@ class RNG:  # Cog
 
         self._defaults = result
 
-    # Changes a default value for a server.
-    def __change_default(self, server, arg):
-        pass
-
     # Initialize defaults when the bot is ready.
     async def on_ready(self):
 
@@ -56,10 +52,10 @@ class RNG:  # Cog
     # The main group for RNG commands.
     # Calling this command without an argument flips a coin,
     #  otherwise, it will execute a subcommand, if one exists.
-    @commands.group(help="RNG command with various methods.\n"
-                         "Flips a coin if no arguments are passed.",
-                    brief="- Collection of RNG related commands.")
-    async def rng(self, ctx):
+    @commands.command(name = 'flip',
+                help="Flips a coin, returning heads/tails and a number between 1-100.",
+                brief=" - Coin flip.")
+    async def flip(self, ctx):
 
         if ctx.invoked_subcommand is None:
             result = random.randint(1, 100)
@@ -69,7 +65,7 @@ class RNG:  # Cog
     # Roll subcommand from RNG.
     # Responsible for handling dice rolls,
     #  as well as managing a default roll for easy use.
-    @rng.command(name='roll',
+    @commands.command(name='roll',
                  help="Rolls a dice in ndn format.\n"
                       "Rolls the default setting if no arguments are passed.\n"
                       "Usage:\n"
@@ -98,6 +94,8 @@ class RNG:  # Cog
             # Modify default roll table, and update database.
             self._defaults[ctx.guild.id] = arg2
 
+            # Could potentially make a function in DatabaseManager to handle value updating,
+            #  but worried that it could lead to certain values being updated when they shouldn't be.
             async with self._pool.acquire() as conn:
                 cur = await conn.cursor()
                 table = self._bot.get_table_name(ctx.guild.id)
@@ -116,7 +114,7 @@ class RNG:  # Cog
 
     # Choose subcommand from RNG.
     # Responsible for choosing a random element from a list of arguments.
-    @rng.command(name='choose',
+    @commands.command(name='choose',
                  help="Chooses one item out of a list of arguments.\n"
                       "Arguments can be combined by wrapping them in quotes.",
                  brief="- Choice selection.")
@@ -131,7 +129,7 @@ class RNG:  # Cog
 
     # Reorder command from RNG.
     # Responsible for reordering a list of arguments in random order.
-    @rng.command(name='reorder',
+    @commands.command(name='reorder',
                  help="Takes a list of arguments, and returns a permutation of it.\n"
                       "Arguments can be combined by wrapping them in quotes.",
                  brief="- List reordering.")
@@ -147,7 +145,7 @@ class RNG:  # Cog
 
     # Boo command from RNG.
     # Responsible for returning a random Boo.
-    @rng.command(name='boo',
+    @commands.command(name='boo',
                  help="Returns a random boo.\n"
                       "Current boo table:\n"
                       "  Regular boo: 49%\n"
