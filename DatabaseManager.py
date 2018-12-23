@@ -92,7 +92,7 @@ class DatabaseManager:
             async with conn.cursor() as c:
 
                 # Check if the entry exists, and return False if it does.
-                if await self.get_db_entry(guild_table, values[1], cursor=c):
+                if await self.get_db_entry(guild_table, values[1]):
                     return False
 
                 # From here, the entry doesn't already exist, and we can add it.
@@ -115,7 +115,7 @@ class DatabaseManager:
             async with conn.cursor() as c:
 
                 # Check if entry exists, and return false if it doesn't.
-                check = await self.get_db_entry(guild_table, name, cursor=c)
+                check = await self.get_db_entry(guild_table, name)
 
                 if check is None:
                     return None

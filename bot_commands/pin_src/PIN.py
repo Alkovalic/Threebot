@@ -48,6 +48,10 @@ class PIN:
             if not cmd:
                 return
             
+            # Handle -s case.  In this case, -s does nothing.
+            if cmd.endswith(" -s"):
+                cmd = cmd.rstrip(" -s")
+
             # Ignore all built-in commands.
             for i in self._bot.commands:
                 if cmd == i.name:
@@ -89,6 +93,9 @@ class PIN:
         for cmd in self._bot.commands:
             if name == cmd.name:
                 return await ctx.send("Name provided is a built-in command!")
+
+        if "-s" in name:
+            return await ctx.send("Name provided cannot contain flag '-s'!")
 
         value = data
         
