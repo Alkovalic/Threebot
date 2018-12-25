@@ -99,15 +99,17 @@ class FileManager:
     # Removes a file from a guild's directory.
     # Note:  if all files are removed from a directory,
     #        the directory does not get removed.
-    # Returns a discord.File object on success, or None on failure.
+    # Returns True on success, or False on failure.
     async def remove_file(self, path):
 
         # Get the file, and handle the case where it doesn't exist.
         result = await self.get_file(path)
         if result:
+            result.fp.close()
             os.remove(path)
+            return True
 
-        return result
+        return False
 
     # Retrieves a file from a guild's directory.
     # Returns a discord.File object on success, or None on failure.

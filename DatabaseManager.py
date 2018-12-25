@@ -105,7 +105,7 @@ class DatabaseManager:
 
     # Removes an entry from the database, given a guild table, and the name of the entry.
     # If override is True, the author check is ignored.
-    # Returns the entry tuple on success, and None on failure.
+    # Returns the removed entry tuple on success, and None on failure.
     # Failure involves the entry not existing.
     # Raises PermissionError if the author check fails.
     async def remove_db_entry(self, guild_table, name, author, override=False):
@@ -119,7 +119,7 @@ class DatabaseManager:
 
                 if check is None:
                     return None
-
+                    
                 # At this point, the entry exists
                 # Check if the author is able to remove the entry.
                 if check.authorid != author and not override:

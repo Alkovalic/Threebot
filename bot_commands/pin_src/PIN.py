@@ -145,26 +145,37 @@ class PIN:
 
             override = True
         
-        # Attempt to remove the entry.
+        # Get the entry before removing it.
+        # If the entry is None, no such entry exists, so error out the request.
         try:
-            res = await self._pin_manager.remove_entry(name, ctx.author.id, ctx.guild.id, override=override)
-        except PermissionError as e:  # User not allowed to remove the entry.
-            owner = ctx.guild.get_member(e.args[0])
-            return await ctx.send(f"You are unauthorized to remove entry created by {owner}!")
-        except ValueError as v:  # User attempted to remove a blank entry.
+            entry = await self._pin_manager.get_entry(name, ctx.guild.id)
+            if entry is None:
+                return await ctx.send(f"Entry {name} does not exist!")
+            if isinstance(entry, discord.File):
+                await ctx.send(file=entry)
+                entry.fp.close()
+            else:
+                await ctx.send(entry)
+        except ValueError as v:
             return await ctx.send(v.args[0])
 
-        # Check if removal is successful, and return the removed item if this is the case.
-        if res is None:
-            return await ctx.send(f"Entry '{name}' does not exist!")
+        # Attempt to remove the entry.
+        try:
+            removal = await self._pin_manager.remove_entry(name, ctx.author.id, ctx.guild.id, override=override)
+        except PermissionError as e:  # User not allowed to remove the entry.
+            owner = ctx.guild.get_member(e.args[0])
+            return await ctx.send(e.args)
+            #return await ctx.send(f"You are unauthorized to remove entry created by {owner}!")
+        except ValueError as v:  # Redundancy, should not be reached under normal circumstances.
+            return await ctx.send(v.args[0])
+
+        # Should not happen, but here just in case.
+        if not removal:
+            entry.close()
+            return await ctx.send(f"Unable to remove entry {name}!")
 
         # Removal successful.
-        await ctx.send(f"Entry {name} removed successfully:")
-        if isinstance(res, discord.File):
-            await ctx.send(file=res)
-            res.close()
-        else:
-            await ctx.send(res)
+        await ctx.send(f"Entry {name} removed successfully.")
 
 
     @commands.command(name="search",

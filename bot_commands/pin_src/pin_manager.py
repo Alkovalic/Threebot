@@ -100,7 +100,7 @@ class PinManager:
 
     # Remove an entry, given a name, author, and guild_id.
     # If the author is not the owner of the entry, raise the error.
-    # Else, remove the entry, and return the file as a string or a discord.File object.
+    # Else, remove the entry if it exists, and return True or False, depending on whether an entry was removed.
     # If override is true, remove the entry regardless of ownership.
     async def remove_entry(self, name : str, author : str, guild_id, override=False):
 
@@ -118,27 +118,16 @@ class PinManager:
 
         # Handle the case where the entry didn't exist.
         if result is None:
-            return None
+            return False
         
         # From here, something has been removed from the database.
         # Get whatever was removed, remove it from the disk, and send it.
         
         # Handle the case where the entry was a file.
-        elif result.path:
-            # Getting filesize.
-            is_oversized = (os.stat(result.path).st_size > 8000000)
-            file = await self._file_manager.remove_file(result.path)
-            
-            # If the file is too large to upload, just upload the value.
-            if is_oversized:
-                file.close()
-                return result.value
-            else:
-                return file
+        if result.path:
+            return await self._file_manager.remove_file(result.path)
 
-        # Handle the case where the entry was a string.
-        else:
-            return result.value
+        return True
         
 
     # Get an entry, given a name and guild_id.
@@ -157,9 +146,12 @@ class PinManager:
         if details is None:
             return None
 
-        # If a path exists, open and return it.
+        # If a path exists, open and return it, as long as the file is small enough to upload.
         if details.path:
-            return await self._file_manager.get_file(details.path)
+            # Getting filesize.
+            is_oversized = (os.stat(details.path).st_size > 8000000)
+            if not is_oversized:
+                return await self._file_manager.get_file(details.path)
 
         # At this point, the only reasonable possibility is the value being a string.
         return details.value
