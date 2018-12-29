@@ -1,21 +1,36 @@
-import enum
 from discord.ext import commands
 from . import voice_queue
+
+import enum
+import asyncio
 
 class Player:
 
     def __init__(self, bot):
         self._bot = bot
-        self._db_manager = bot.db_manager
+        self._pool = None
         self._voice_queues = {}
+        self._pin_table = "PIN_{}"
 
     # Creates a VoiceQueue for the given guild and discord.Voice object,
     #  and adds it to the dictionary of guilds.
-    def __create_queue(self, guild_id, voice):
+    def _create_queue(self, guild_id, voice):
         self._voice_queues[guild_id] = voice_queue.VoiceQueue(voice)
 
-    def __remove_queue(self, guild_id):
+    def _remove_queue(self, guild_id):
         del self._voice_queues[guild_id]
+
+    # Get the database pool once the database has been fully loaded.
+    async def on_ready(self):
+
+        # Do nothing if the pool already exists.
+        if not self._pool is None:
+            return
+
+        while not self._bot.pool:
+            await asyncio.sleep(delay=1, loop=self._bot.loop)
+
+        self._pool = self._bot.pool
 
     # PLAYER's on_message reads every message that starts withh the command prefix.
     # It then attempts to find the entry in the PIN database.
@@ -41,9 +56,15 @@ class Player:
             silent = False
             if cmd.endswith(" -s"):
                 silent = True
-                cmd = cmd.rstrip("- s")
+                cmd = cmd.rstrip(" -s")
             
-            query = await self._db_manager.get_db_entry(self._db_manager.get_table_name(message.guild.id), cmd)
+            # Get the entry from the PIN database by name.
+            pin_table = self._pin_table.format(message.guild.id)
+            query = None
+            async with self._pool.acquire() as conn:
+                async with conn.cursor() as c:
+                    await c.execute(rf"SELECT * FROM {pin_table} WHERE name=(?)", cmd)
+                    query = await c.fetchone()
 
             # If the query returns None, no entry was found, so we ignore the request.
             if not query:
@@ -56,7 +77,7 @@ class Player:
             # At this point, the query is of type SOUND, so we attempt to play it.
             # Create a VoiceQueue object for the server if one does not already exist.
             if not message.guild.id in self._voice_queues:
-                self.__create_queue(message.guild.id, message.author.voice)
+                self._create_queue(message.guild.id, message.author.voice)
             # Create a voice client for the guild.  If the user is not in a voice channel, do nothing.
             if not await self._voice_queues[message.guild.id].join_channel(message.author.voice):
                 return

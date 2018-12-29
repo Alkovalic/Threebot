@@ -1,6 +1,6 @@
 from discord.ext import commands
-from . import dice
-from . import random_boo_generator
+from bot_commands.rng_src import dice
+from bot_commands.rng_src import random_boo_generator
 
 import discord
 import random
@@ -10,8 +10,6 @@ import asyncio
 class RNG:  # Cog
 
     """ Cog responsible for handling commands related to random number generation.
-        WARNING:  If the RNG type is ever used for more than one thing, dice roll
-                  defaults must be modified to update select entries.
     """
 
     def __init__(self, bot):
@@ -19,10 +17,12 @@ class RNG:  # Cog
         self._pool = None  # Database pool from the bot.
         self._boo_generator = random_boo_generator.RandomBooGenerator()
         self._defaults = None
+        self._table = "default_dice"
+        self._initial_dice = "3d6"  # Default rolls for a newly added entry for a guild.
 
     # Creates a dictionary of default rolls for each server.
     # Using this to save database queries when getting a default roll.
-    async def __init_defaults(self):
+    async def _init_defaults(self):
 
         result = {}
 
@@ -30,24 +30,72 @@ class RNG:  # Cog
         async with self._pool.acquire() as conn:
             cur = await conn.cursor()
             for guild in self._bot.guilds:
-                table = self._bot.get_table_name(guild.id)
-                await cur.execute(f"SELECT type, value FROM {table} WHERE type='RNG'")
-                result[guild.id] = (await cur.fetchone())[1]
+                await cur.execute(f"SELECT dice FROM {self._table} WHERE guild=(?)", guild.id)
+                result[guild.id] = (await cur.fetchone())[0]
             await cur.close()
             await conn.close()
 
         self._defaults = result
 
+    # Adds a default roll entry to the RNG table for the given guild.
+    # Returns True if the entry is successfully added, and False if the entry already exists.
+    async def _add_guild_entry(self, guild_id):
+
+        async with self._pool.acquire() as conn:
+            async with conn.cursor() as c:
+                
+                # First, check if the guild is already in the database.
+                await c.execute(rf"SELECT * FROM {self._table} WHERE guild=(?)", guild_id)
+                if await c.fetchone():
+                    return False
+        
+                # If it isn't, create a new entry for the guild.
+                values = (guild_id, self._initial_dice)
+                await c.execute(rf"INSERT INTO {self._table} (guild, dice) VALUES (?, ?)", values)
+                await c.commit()
+                return True
+
+    # Removes the entry for the given guild from the RNG table.
+    async def _remove_guild_entry(self, guild_id):
+        async with self._pool.acquire() as conn:
+            async with conn.cursor() as c:
+                await c.execute(rf"DELETE FROM {self._table} WHERE guild=(?)", guild_id)
+
     # Initialize defaults when the bot is ready.
     async def on_ready(self):
+
+        if not self._pool is None:
+            return
 
         # Wait for the pool to be ready.
         while not self._bot.pool:
             await asyncio.sleep(delay=1, loop=self._bot.loop)
 
-        # Assign pool, initialize default rolls.
+        # Assign pool, create table if necessary, pull default rolls from the database.
         self._pool = self._bot.pool
-        await self.__init_defaults()
+
+        # Checking if the table exists, and make one if it doesn't.
+        async with self._pool.acquire() as conn:
+            async with conn.cursor() as c:
+                check = await c.tables(table=self._table, tableType='TABLE')
+                if not check.fetchone():
+                    execute_input = rf"CREATE TABLE {self._table} (guild TEXT, dice TEXT)"
+                    await c.execute(execute_input)
+                    await c.commit()
+
+        # Add entries for every guild the bot is part of, if one doesn't already exist.
+        for guild in self._bot.guilds:
+            await self._add_guild_entry(guild.id)
+
+        await self._init_defaults()
+
+    # Create a new entry for the newly joined guild.
+    async def on_guild_join(self, guild):
+        await self._add_guild_entry(guild.id)
+
+    # Remove the entry for the removed guild.
+    async def on_guild_remove(self, guild):
+        await self._remove_guild_entry(guild.id)
 
     # The main group for RNG commands.
     # Calling this command without an argument flips a coin,
@@ -97,12 +145,9 @@ class RNG:  # Cog
             # Could potentially make a function in DatabaseManager to handle value updating,
             #  but worried that it could lead to certain values being updated when they shouldn't be.
             async with self._pool.acquire() as conn:
-                cur = await conn.cursor()
-                table = self._bot.get_table_name(ctx.guild.id)
-                await cur.execute(f"UPDATE {table} SET value=(?) WHERE type='RNG'", arg2)
-                await cur.commit()
-                await cur.close()
-                await conn.close()
+                async with conn.cursor() as c:
+                    await c.execute(f"UPDATE {self._table} SET dice=(?) WHERE guild=(?)", arg2, ctx.guild.id)
+                    await c.commit()
 
             return await ctx.send(f"Default roll has been set to {arg2}!")
         # One argument passed.
@@ -159,8 +204,9 @@ class RNG:  # Cog
         # Select a random Boo.
         selected_boo = self._boo_generator.get_random_boo()
 
-        # If None is returned, something went wrong, so tell the user just that.
+        # If None is returned, something went wrong, so log it to the console, and send a default message to the user.
         if selected_boo is None:
+            print("RNG Boo generator returned None:  maybe an image hasn't been hooked up in the Boo generator?")
             return await ctx.send("Luigi, what the hell?  You told me there were GHOSTS in here!")
 
         # At this point, a path has been returned, and we're ready to deliver the Boo.

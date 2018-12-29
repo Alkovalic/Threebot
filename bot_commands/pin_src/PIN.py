@@ -12,6 +12,7 @@ class PIN:
     def __init__(self, bot):
         self._bot = bot
         self._pin_manager = None
+        self._pool = None
         self._image_extensions = [".gif", ".jpg", ".jpeg", ".png"]
 
     # Checks if a file ends with an image extension.
@@ -23,14 +24,30 @@ class PIN:
                 return True
         return False
 
+    # EVENTS #
 
     # PIN's on_ready waits for the bot's connection pool to initialize before initializing the PinManager.
     async def on_ready(self):
 
-        while not self._bot.pool:
-            await asyncio.sleep(delay=1, loop=self._bot.loop)
+        if self._pin_manager is None:
 
-        self._pin_manager = pin_manager.PinManager(self._bot)
+            while not self._bot.pool:
+                await asyncio.sleep(delay=1, loop=self._bot.loop)
+
+            self._pool = self._bot.pool
+            self._pin_manager = pin_manager.PinManager(self._pool)
+
+            # Create tables for any existing guilds if needed.
+            for guild in self._bot.guilds:
+                await self._pin_manager.add_new_guild_table(guild.id)
+
+    # Create necessary tables for the new guild.
+    async def on_guild_join(self, guild):
+        await self._pin_manager.add_new_guild_table(guild.id)
+
+    # Remove necessary tables for the new guild.
+    async def on_guild_remove(self, guild):
+        await self._pin_manager.remove_guild_table(guild.id)
 
     # PIN's on_message reads every command sent to the bot,
     #  and checks if the command is found in the list of pins.
@@ -164,8 +181,7 @@ class PIN:
             removal = await self._pin_manager.remove_entry(name, ctx.author.id, ctx.guild.id, override=override)
         except PermissionError as e:  # User not allowed to remove the entry.
             owner = ctx.guild.get_member(e.args[0])
-            return await ctx.send(e.args)
-            #return await ctx.send(f"You are unauthorized to remove entry created by {owner}!")
+            return await ctx.send(f"You are unauthorized to remove entry created by {owner}!")
         except ValueError as v:  # Redundancy, should not be reached under normal circumstances.
             return await ctx.send(v.args[0])
 
