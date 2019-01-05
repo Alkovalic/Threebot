@@ -25,7 +25,7 @@ class FileManager:
         if not attachment:
             raise ValueError("No attachment provided!")
 
-        # If the guild directory does not exist, create it!
+        # If the guild directory does not exist, create it.
         path = self.__create_guild_dir(guild_id)
         if path is None:  # Guild probably already exists.
             path = f"{self._path}/{guild_id}"
@@ -69,6 +69,7 @@ class FileManager:
                 pass
 
             # Checking if the file already exists in the directory.
+            self._create_guild_dir(guild_id)
             for f in os.listdir(f'{self._path}/{guild_id}'):
                 if info['id'] in f:
                     raise FileExistsError(f'{self._path}/{guild_id}/{f}')
@@ -128,7 +129,7 @@ class FileManager:
 
     # Creates a directory for a guild, if none exists.
     # Returns the path to the new directory on success, or None on failure.
-    def __create_guild_dir(self, guild_id):
+    def _create_guild_dir(self, guild_id):
 
         new_directory = f"{self._path}/{guild_id}"
 

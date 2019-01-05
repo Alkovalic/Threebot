@@ -1,5 +1,7 @@
 import enum
 import discord
+import youtube_dl
+import asyncio
 
 class PlayerState(enum.Enum):
     PLAYING = 0
@@ -24,6 +26,7 @@ class VoiceQueue():
         self._queue = []
         self._currently_playing = None
         self._voice_client = None
+        self._video_path = "videos/"
 
     @property
     def state(self):
@@ -59,12 +62,13 @@ class VoiceQueue():
     # If audio is playing, play the audio passed instead.
     # If audio is playing, but the audio is uninterruptable, ignore the audio source.
     #   However, if playlist is true, add the source to the queue.
-    async def _play_audio_data(self, data, playlist=False):
+    async def _play_audio_data(self, data):
 
         # Handle the case where the source is part of a playlist.
         if data and data.playlist:
             if self._voice_client.is_playing() and self._state == PlayerState.UNINTERRUPTABLE:
                 self._queue.append(data)
+                print("Appended!")
             else:
                 self._currently_playing = data
                 self._voice_client.play(data.source)
@@ -76,7 +80,7 @@ class VoiceQueue():
             self._voice_client.play(data.source)
 
         # Update the state of the queue.
-        self._update_state(data and playlist)
+        self._update_state(data and data.playlist)
 
     # Conditionally stops the current audio source from playing.
     # Will not work if the player is uninterruptable.
@@ -114,6 +118,7 @@ class VoiceQueue():
     async def exit_channel(self):
         return await self._voice_client.disconnect()
 
+    # Play audio from the local filesystem given a path.
     async def play_audio_file(self, name, path):
         
         # If no path is passed, do nothing.
@@ -124,5 +129,46 @@ class VoiceQueue():
         data = self._create_audio_data(name, path)
         await self._play_audio_data(data)
 
+    # Play audio from the internet given a URL.
+    # Code based off of examples provided in the discord.py repo.
+    async def play_audio_url(self, url, loop=None):
+        loop = loop or asyncio.get_event_loop()
+        extract_opt = {
+            'format': 'bestaudio/best',
+            'restrictfilenames': True,
+            'noplaylist': True,
+            'quiet': True,
+            'no_warnings': True,
+        }
+        with youtube_dl.YoutubeDL(extract_opt) as extr:
+            video_data = await loop.run_in_executor(None, lambda: extr.extract_info(url, download=False))
 
-    
+            # If the video is live, just put the url in as the filename.
+            filename = video_data['url']
+
+            # This hook gets called throughout the actual download,
+            #  and saves the path when the download finishes.
+            def hook(dl):
+                nonlocal filename  # Uses the path outside of this scope, declared earlier in add_ytlink.
+                if dl['status'] == 'finished':
+                    filename = dl['filename']
+
+            opt = {
+                'format': 'bestaudio/best',
+                'outtmpl': f'{self._video_path}/%(title)s_%(id)s.%(ext)s',
+                'noplaylist': True,
+                'ignoreerrors': False,
+                'logtostderr': False,
+                'quiet': True,
+                'no_warnings': True,
+                'download_archive': 'videos/video_list.txt',
+                'progress_hooks': [hook]
+            }
+
+            # If the video is NOT live, download the file, and replace the filename accordingly.
+            if not video_data['is_live']:
+                with youtube_dl.YoutubeDL(opt) as yt:
+                    yt.download([url])
+
+            data = self._create_audio_data(name=video_data.get('title', 'untitled'), path=filename, url=url, playlist=True)
+            await self._play_audio_data(data)

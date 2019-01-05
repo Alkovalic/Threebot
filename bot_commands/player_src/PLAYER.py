@@ -50,13 +50,6 @@ class Player:
             for i in self._bot.commands:
                 if cmd == i.name:
                     return
-
-            # Check if the command ends with -s.
-            # If it does, allow the sound to be silently played later.
-            silent = False
-            if cmd.endswith(" -s"):
-                silent = True
-                cmd = cmd.rstrip(" -s")
             
             # Get the entry from the PIN database by name.
             pin_table = self._pin_table.format(message.guild.id)
@@ -89,7 +82,18 @@ class Player:
                            "Does nothing if neither the user nor the bot is in a voice channel.",
                       brief="- Plays audio from a URL.")
     async def play(self, ctx, url=None):
-        pass
+        
+        # Create a queue if one does not exist.
+        if not ctx.guild.id in self._voice_queues:
+            self._create_queue(ctx.guild.id, ctx.author.voice)
+        # Create a voice client for the guild if one does not exist,
+        #  or move the existing voice client to the channel the user is in.
+        # If the user isn't in a channel, and a voice client doesn't exist, do nothing.
+        if not await self._voice_queues[ctx.guild.id].join_channel(ctx.author.voice):
+            return
+        # Play the provided url through the voice client.
+        if url:
+            await self._voice_queues[ctx.guild.id].play_audio_url(url, loop=self._bot.loop)
 
     @commands.command(help="Vote to skip the currently playing song.\n"
                            "If at least three (or majority, whichever is less) votes are made,"
