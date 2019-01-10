@@ -21,12 +21,13 @@ class AudioData():
 
 class VoiceQueue():
 
-    def __init__(self, voice):
+    def __init__(self, loop, output_path):
+        self._loop = loop
         self._state = PlayerState.NOT_PLAYING
         self._queue = []
         self._currently_playing = None
         self._voice_client = None
-        self._video_path = "videos/"
+        self._video_path = f"{output_path}/videos/"
 
     @property
     def state(self):
@@ -68,10 +69,22 @@ class VoiceQueue():
         if data and data.playlist:
             if self._voice_client.is_playing() and self._state == PlayerState.UNINTERRUPTABLE:
                 self._queue.append(data)
-                print("Appended!")
             else:
                 self._currently_playing = data
-                self._voice_client.play(data.source)
+
+                # Taken from discord.py documentation FAQ.
+                def next_song(error):
+                    if error:
+                        print(error)
+
+                    coro = self._play_audio_data(None if len(self._queue)==0 else self._queue.pop(0))
+                    fut = asyncio.run_coroutine_threadsafe(coro, self._loop)
+                    try:
+                        fut.result()
+                    except Exception as e:
+                        print(e)
+
+                self._voice_client.play(data.source, after=next_song)
 
         # Handle the case where the source is not part of a playlist.
         elif data and self._state != PlayerState.UNINTERRUPTABLE:
@@ -131,8 +144,8 @@ class VoiceQueue():
 
     # Play audio from the internet given a URL.
     # Code based off of examples provided in the discord.py repo.
-    async def play_audio_url(self, url, loop=None):
-        loop = loop or asyncio.get_event_loop()
+    async def play_audio_url(self, url):
+        loop = self._loop or asyncio.get_event_loop()
         extract_opt = {
             'format': 'bestaudio/best',
             'restrictfilenames': True,
@@ -161,7 +174,7 @@ class VoiceQueue():
                 'logtostderr': False,
                 'quiet': True,
                 'no_warnings': True,
-                'download_archive': 'videos/video_list.txt',
+                'download_archive': f'{self._video_path}/video_list.txt',
                 'progress_hooks': [hook]
             }
 

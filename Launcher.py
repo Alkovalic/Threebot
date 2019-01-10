@@ -5,7 +5,10 @@ init_cog = ["bot_commands.PING", "bot_commands.rng_src.RNG", "bot_commands.pin_s
 db_args = {"DRIVER": "SQLite3 ODBC Driver",
            "DATABASE": "threebot.db"}
 
+output_path = "saved"
+
 bot = Threebot(cogs=init_cog,
+               output_path=output_path,
                db_args=db_args,
                command_prefix="::",
                description="A bot with various utilities.",

@@ -4,10 +4,11 @@ import DatabaseManager
 
 class Threebot(commands.Bot):
 
-    def __init__(self, cogs, db_args, **args):
+    def __init__(self, cogs, output_path, db_args, **args):
         super().__init__(**args)
-        self.db_manager = DatabaseManager.DatabaseManager(db_args)
+        self.db_manager = DatabaseManager.DatabaseManager(db_args, output_path)
         self.connected = False
+        self.output_path = output_path
         for cog in cogs:
             self.load_extension(cog)
 

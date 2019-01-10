@@ -10,9 +10,9 @@ class PinManager:
 
     """ Helper class for pin that handles database transactions and file storage. """
 
-    def __init__(self, pool):
+    def __init__(self, pool, output_path):
         self._pool = pool
-        self._file_manager = file_manager.FileManager(os.getcwd() + "/guild_file_data")
+        self._file_manager = file_manager.FileManager(f"{os.getcwd()}/{output_path}/guild_file_data")
         self._sound_extensions = [".webm", ".mp3", ".wav"]
         self._table_format = "PIN_{}"
 

@@ -15,7 +15,7 @@ class Player:
     # Creates a VoiceQueue for the given guild and discord.Voice object,
     #  and adds it to the dictionary of guilds.
     def _create_queue(self, guild_id, voice):
-        self._voice_queues[guild_id] = voice_queue.VoiceQueue(voice)
+        self._voice_queues[guild_id] = voice_queue.VoiceQueue(self._bot.loop, self._bot.output_path)
 
     def _remove_queue(self, guild_id):
         del self._voice_queues[guild_id]
@@ -93,7 +93,7 @@ class Player:
             return
         # Play the provided url through the voice client.
         if url:
-            await self._voice_queues[ctx.guild.id].play_audio_url(url, loop=self._bot.loop)
+            await self._voice_queues[ctx.guild.id].play_audio_url(url)
 
     @commands.command(help="Vote to skip the currently playing song.\n"
                            "If at least three (or majority, whichever is less) votes are made,"

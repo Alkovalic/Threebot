@@ -26,7 +26,7 @@ class FileManager:
             raise ValueError("No attachment provided!")
 
         # If the guild directory does not exist, create it.
-        path = self.__create_guild_dir(guild_id)
+        path = self._create_guild_dir(guild_id)
         if path is None:  # Guild probably already exists.
             path = f"{self._path}/{guild_id}"
 

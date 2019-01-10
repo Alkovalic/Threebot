@@ -35,7 +35,7 @@ class PIN:
                 await asyncio.sleep(delay=1, loop=self._bot.loop)
 
             self._pool = self._bot.pool
-            self._pin_manager = pin_manager.PinManager(self._pool)
+            self._pin_manager = pin_manager.PinManager(self._pool, self._bot.output_path)
 
             # Create tables for any existing guilds if needed.
             for guild in self._bot.guilds:
@@ -65,10 +65,6 @@ class PIN:
             if not cmd:
                 return
             
-            # Handle -s case.  In this case, -s does nothing.
-            if cmd.endswith(" -s"):
-                cmd = cmd.rstrip(" -s")
-
             # Ignore all built-in commands.
             for i in self._bot.commands:
                 if cmd == i.name:
@@ -104,15 +100,11 @@ class PIN:
     async def pin(self, ctx, name, data=None):\
 
         if not name:
-
             return await ctx.send("No name provided!")
 
         for cmd in self._bot.commands:
             if name == cmd.name:
                 return await ctx.send("Name provided is a built-in command!")
-
-        if "-s" in name:
-            return await ctx.send("Name provided cannot contain flag '-s'!")
 
         value = data
         
@@ -122,7 +114,7 @@ class PIN:
             # Begin seeking for a file.
             await ctx.send(f"Please upload a file, {ctx.author.name}.")
 
-            # A lot of this is straight from the documentation, so thanks, Danny.
+            # A lot of this is straight from the discord.py documentation.
             
             # check returns whether a message has attachments, and the attachment is less than 8mb.
             def check(m):
