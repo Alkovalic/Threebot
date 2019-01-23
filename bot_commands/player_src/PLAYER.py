@@ -93,7 +93,7 @@ class Player:
             return
         # Play the provided url through the voice client.
         if url:
-            await self._voice_queues[ctx.guild.id].play_audio_url(url)
+            await self._voice_queues[ctx.guild.id].play_audio_url(url, ctx.author.id)
 
     @commands.command(help="Vote to skip the currently playing song.\n"
                            "If at least three (or majority, whichever is less) votes are made,"
@@ -102,7 +102,7 @@ class Player:
                            " or is an administrator.",
                       brief="- Vote to skip the current song.")
     async def skip(self, ctx):
-        pass
+        await self._voice_queues[ctx.author.id].vote_to_skip(ctx.author.id, ctx)
 
     @commands.command(help="Vote to clear the queue.\n"
                             "If at least three (or majority, whichever is less) votes are made,"
@@ -131,7 +131,7 @@ class Player:
         if not ctx.guild.id in self._voice_queues:
             return
 
-        self._voice_queues[ctx.guild.id].stop_player()
+        self._voice_queues[ctx.guild.id].skip_current_audio()
 
 
 def setup(bot):

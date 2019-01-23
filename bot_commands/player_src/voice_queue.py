@@ -12,11 +12,12 @@ class PlayerState(enum.Enum):
 class AudioData():
 
     # Try adding a "Time played/time left" member
-    def __init__(self, name, source, url, playlist):
+    def __init__(self, name, source, url, playlist, author_id):
         self.name = name
         self.source = source
         self.url = url
         self.playlist = playlist
+        self.author_id = author_id
         #self.time_left
 
 class VoiceQueue():
@@ -24,7 +25,9 @@ class VoiceQueue():
     def __init__(self, loop, output_path):
         self._loop = loop
         self._state = PlayerState.NOT_PLAYING
-        self._queue = []
+        self._queue = list()
+        self._skip_votes = dict()
+        self._clear_votes = dict()
         self._currently_playing = None
         self._voice_client = None
         self._video_path = f"{output_path}/videos/"
@@ -54,9 +57,9 @@ class VoiceQueue():
     # Creates an AudioData given at least a name and a path, and returns it.
     # url is optional, usually representing the online source of the file.
     # playlist should be True if the AudioData is meant to be added to the queue.
-    def _create_audio_data(self, name, path, url=None, playlist=False):
+    def _create_audio_data(self, name, path, author_id=None, url=None, playlist=False):
         src = discord.FFmpegPCMAudio(path)
-        return AudioData(name, src, url, playlist)
+        return AudioData(name, src, url, playlist, author_id)
 
     # Conditionally plays an audio source.
     # If no audio is currently playing, play the source normally.
@@ -95,13 +98,11 @@ class VoiceQueue():
         # Update the state of the queue.
         self._update_state(data and data.playlist)
 
-    # Conditionally stops the current audio source from playing.
-    # Will not work if the player is uninterruptable.
-    # Returns True on success, False on failure.
-    #  Failure entails the player being uninterruptable, or if nothing is playing.
+    # Skips the current audio source.
+    # Returns True on success, False if nothing is playing.
     # Also sets the player state accordingly.
-    def stop_player(self):
-        if self._state != PlayerState.UNINTERRUPTABLE and self._voice_client.is_playing():
+    def skip_current_audio(self):
+        if self._voice_client.is_playing():
             self._voice_client.stop()
             self._update_state()
             return True 
@@ -121,10 +122,12 @@ class VoiceQueue():
         # Create the voice client if it doesn't already exist.
         if self._voice_client is None:
             self._voice_client = await voice.channel.connect()
+            await self.generate_voting_dictionaries()
             return True
 
         # Move the voice client to the author's channel.
         await self._voice_client.move_to(voice.channel)
+        await self.generate_voting_dictionaries()
         return True
 
     # Disconnect from the voice channel the voice client is currently in.
@@ -144,7 +147,7 @@ class VoiceQueue():
 
     # Play audio from the internet given a URL.
     # Code based off of examples provided in the discord.py repo.
-    async def play_audio_url(self, url):
+    async def play_audio_url(self, url, author_id):
         loop = self._loop or asyncio.get_event_loop()
         extract_opt = {
             'format': 'bestaudio/best',
@@ -183,5 +186,82 @@ class VoiceQueue():
                 with youtube_dl.YoutubeDL(opt) as yt:
                     yt.download([url])
 
-            data = self._create_audio_data(name=video_data.get('title', 'untitled'), path=filename, url=url, playlist=True)
+            data = self._create_audio_data(name=video_data.get('title', 'untitled'), path=filename, author_id=author_id, url=url, playlist=True)
             await self._play_audio_data(data)
+
+    # Appropriately set a vote to skip from the given author id.
+    # Return True if the audio is skipped, and False if it is not.
+    # If, after adding the vote, the number of votes reaches the amount needed to skip, skip the current song.
+    # Also skips the song if the author_id matches the id of the author who played the song, 
+    #  or if the admin flag is set to True.
+    async def vote_to_skip(self, author_id, admin=False):
+        
+        # Set vote accordingly.
+        if not author_id in self._skip_votes.keys():
+            raise discord.ClientException("Author not in channel.")
+        self._skip_votes[author_id] = True
+        
+        # Check if the overall vote has passed.
+        total_votes = 0
+        for value in self._skip_votes.values():
+            total_votes = (total_votes + 1) if value else total_votes
+        
+        # If there is a majority vote, or >=3 votes, or a special condition passes,
+        #  skip the current song.
+        if (total_votes >= 3 or total_votes / len(self._skip_votes.values()) > .5 or
+            self._currently_playing.author_id == author_id or admin):
+            await self.skip_current_audio()
+            return True
+        return False
+
+    # Appropriately set a vote to clear from the given author id.
+    # If the author isn't currently in the dictionary of possible voters, return False.
+    # Otherwise, return True.
+    async def vote_to_clear(self, author_id, admin=False):
+
+        # Set vote accordingly.
+        if not author_id in self._clear_votes.keys():
+            raise discord.ClientException("Author not in channel.")
+        self._clear_votes[author_id] = True
+        
+        # Check if the overall vote has passed.
+        total_votes = 0
+        for value in self._clear_votes.values():
+            total_votes = (total_votes + 1) if value else total_votes
+        
+        # If there is a majority vote, or >=3 votes, skip the current song.
+        if (total_votes >= 3 or total_votes / len(self._skip_votes.values()) > .5 or
+            self._currently_playing.author_id == author_id or admin):
+            self._queue = list()
+            await self.skip_current_audio()
+            return True
+        return False
+
+    # (Re)generate the skip/clear voting dictionaries.
+    async def generate_voting_dictionaries(self):
+
+        # Create new dictionaries to replace the old ones.
+        new_clear_votes = dict()
+        new_skip_votes = dict()
+
+        # Iterate through all current members in the voice client's channel,
+        #  and use them to populate the new dictionaries.
+        # Doing this removes any existing votes from members that are no longer in the channel.
+        for member in self._voice_client.channel.members:
+
+            # Add onto the new_skip_votes dictionary.
+            if member not in self._skip_votes.keys():
+                new_skip_votes[member.id] = False
+            else:
+                new_skip_votes[member.id] = self._skip_votes[member.id]
+
+            # Add onto the new_clear_votes dictionary.
+            if member not in self._skip_votes.keys():
+                new_clear_votes[member.id] = False
+            else:
+                new_clear_votes[member.id] = self._clear_votes[member.id]
+
+        # Finally, assign the new dictionaries to the appropriate member variable.
+        self._clear_votes = new_clear_votes
+        self._skip_votes = new_skip_votes
+
