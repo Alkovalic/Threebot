@@ -12,6 +12,29 @@ class Player:
         self._pool = None
         self._voice_queues = {}
         self._pin_table = "PIN_{}"
+        #self._queue_management_task = self._bot.loop.create_task(self.manage_queues())
+
+    # Responsible for clearing inactive voice clients.
+    # Every 60 seconds, this task will check every VoiceQueue in the dict of voice queues.
+    # - If the queue's state is PLAYING/UNINTERRUPTABLE, do nothing.
+    # - If the queue's state is NOT PLAYING, change the state to STALE.
+    # - If the queue's state is STALE, disconnect the queue and remove it from the dict of voice queues.
+    async def manage_queues(self):
+        await self._bot.wait_until_ready()
+        print("fda")
+        while not self._bot._is_closed():
+            print("asdf")
+            for guild in list(self._voice_queues.keys()):
+                vq = self._voice_queues[guild]
+                if vq.state == voice_queue.PlayerState.UNINTERRUPTABLE or vq.state == voice_queue.PlayerState.PLAYING:
+                    pass
+                elif vq.state == voice_queue.PlayerState.NOT_PLAYING:
+                    vq.state = voice_queue.PlayerState.STALE
+                else:
+                    await vq.exit_channel()
+                    del self._voice_queues[guild]
+            await asyncio.sleep(60)
+        
 
     # Creates a VoiceQueue for the given guild and discord.Voice object,
     #  and adds it to the dictionary of guilds.

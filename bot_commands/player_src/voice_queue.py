@@ -113,7 +113,6 @@ class VoiceQueue():
 
         # Handle the case where no data is passed, which means the queue has been depleted.
         else:
-            # TODO THIS IS REACHED WHEN A NORMAL FILE IS PLAYED WHILE INTERRUPTABLE FIX PLS
             self._currently_playing = None
 
         # Update the state of the queue.
@@ -177,8 +176,8 @@ class VoiceQueue():
     async def play_audio_url(self, url, author_id):
         loop = self._loop or asyncio.get_event_loop()
         extract_opt = {
-            'format': 'bestaudio/best',
-            'restrictfilenames': True,
+            'format': '43/best',
+            'outtmpl': f'{self._video_path}/%(title)s_%(id)s.%(ext)s',
             'noplaylist': True,
             'quiet': True,
             'no_warnings': True,
@@ -189,15 +188,8 @@ class VoiceQueue():
             # If the video is live, just put the url in as the filename.
             filename = video_data['url']
 
-            # This hook gets called throughout the actual download,
-            #  and saves the path when the download finishes.
-            def hook(dl):
-                nonlocal filename  # Uses the path outside of this scope, declared earlier in add_ytlink.
-                if dl['status'] == 'finished':
-                    filename = dl['filename']
-
             opt = {
-                'format': 'bestaudio/best',
+                'format': '43/best',
                 'outtmpl': f'{self._video_path}/%(title)s_%(id)s.%(ext)s',
                 'noplaylist': True,
                 'ignoreerrors': False,
@@ -205,13 +197,15 @@ class VoiceQueue():
                 'quiet': True,
                 'no_warnings': True,
                 'download_archive': f'{self._video_path}/video_list.txt',
-                'progress_hooks': [hook]
             }
 
             # If the video is NOT live, download the file, and replace the filename accordingly.
             if not video_data['is_live']:
                 with youtube_dl.YoutubeDL(opt) as yt:
                     yt.download([url])
+                filename = extr.prepare_filename(video_data)
+
+            print(filename)
 
             data = self._create_audio_data(name=video_data.get('title', 'untitled'), path=filename, author_id=author_id, url=url, playlist=True)
             return await self._play_audio_data(data)
