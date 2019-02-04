@@ -41,8 +41,13 @@ class VoiceQueue():
         self._state = value
 
     @property
-    def curently_playing(self):
+    def currently_playing(self):
         return self._currently_playing
+
+    # Returns the list of items in the queue.
+    @property
+    def queue_summary(self):
+        return [x.name for x in self._queue]
 
     # Updates the voice state depending on what the voice client is doing.
     # This method will never be responsible for setting the state to "STALE"
@@ -66,7 +71,11 @@ class VoiceQueue():
     # If audio is playing, play the audio passed instead.
     # If audio is playing, but the audio is uninterruptable, ignore the audio source.
     #   However, if playlist is true, add the source to the queue.
+    # Returns true if the audio plays, and false if is either added to the queue, or not added at all.
     async def _play_audio_data(self, data):
+
+        # Return flag for the function.
+        ret = False
 
         # Handle the case where the source is part of a playlist.
         if data and data.playlist:
@@ -86,17 +95,34 @@ class VoiceQueue():
                         fut.result()
                     except Exception as e:
                         print(e)
-
+                if self._state == PlayerState.PLAYING:
+                    self._voice_client.stop()
                 self._voice_client.play(data.source, after=next_song)
+                ret = True
 
         # Handle the case where the source is not part of a playlist.
         elif data and self._state != PlayerState.UNINTERRUPTABLE:
             self._currently_playing = data
             self._voice_client.stop()
             self._voice_client.play(data.source)
+            ret = True
+
+        # Handle the case where data is passed, but the queue is uninterruptable.
+        elif data:
+            pass
+
+        # Handle the case where no data is passed, which means the queue has been depleted.
+        else:
+            # TODO THIS IS REACHED WHEN A NORMAL FILE IS PLAYED WHILE INTERRUPTABLE FIX PLS
+            self._currently_playing = None
 
         # Update the state of the queue.
-        self._update_state(data and data.playlist)
+        self._update_state(data and (data.playlist or self._state == PlayerState.UNINTERRUPTABLE))
+
+        # Clear all votes for skipping and clearing.
+        await self.generate_voting_dictionaries(clear=True)
+
+        return ret
 
     # Skips the current audio source.
     # Returns True on success, False if nothing is playing.
@@ -135,18 +161,19 @@ class VoiceQueue():
         return await self._voice_client.disconnect()
 
     # Play audio from the local filesystem given a path.
-    async def play_audio_file(self, name, path):
+    async def play_audio_file(self, name, path, author_id):
         
         # If no path is passed, do nothing.
         if not path:
             return
         
         # Create an audio source based off of the path, and attempt to play it.
-        data = self._create_audio_data(name, path)
+        data = self._create_audio_data(name, path, author_id=author_id)
         await self._play_audio_data(data)
 
     # Play audio from the internet given a URL.
     # Code based off of examples provided in the discord.py repo.
+    # Returns True if the audio is played immediately, and False if it is queued or failed.
     async def play_audio_url(self, url, author_id):
         loop = self._loop or asyncio.get_event_loop()
         extract_opt = {
@@ -187,7 +214,7 @@ class VoiceQueue():
                     yt.download([url])
 
             data = self._create_audio_data(name=video_data.get('title', 'untitled'), path=filename, author_id=author_id, url=url, playlist=True)
-            await self._play_audio_data(data)
+            return await self._play_audio_data(data)
 
     # Appropriately set a vote to skip from the given author id.
     # Return True if the audio is skipped, and False if it is not.
@@ -210,7 +237,8 @@ class VoiceQueue():
         #  skip the current song.
         if (total_votes >= 3 or total_votes / len(self._skip_votes.values()) > .5 or
             self._currently_playing.author_id == author_id or admin):
-            await self.skip_current_audio()
+            self.skip_current_audio()
+            await self.generate_voting_dictionaries(clear=True)
             return True
         return False
 
@@ -233,12 +261,14 @@ class VoiceQueue():
         if (total_votes >= 3 or total_votes / len(self._skip_votes.values()) > .5 or
             self._currently_playing.author_id == author_id or admin):
             self._queue = list()
-            await self.skip_current_audio()
+            self.skip_current_audio()
+            await self.generate_voting_dictionaries(clear=True)
             return True
         return False
 
     # (Re)generate the skip/clear voting dictionaries.
-    async def generate_voting_dictionaries(self):
+    # If clear is enabled, clears all votes.
+    async def generate_voting_dictionaries(self, clear=False):
 
         # Create new dictionaries to replace the old ones.
         new_clear_votes = dict()
@@ -250,13 +280,13 @@ class VoiceQueue():
         for member in self._voice_client.channel.members:
 
             # Add onto the new_skip_votes dictionary.
-            if member not in self._skip_votes.keys():
+            if member not in self._skip_votes.keys() or clear:
                 new_skip_votes[member.id] = False
             else:
                 new_skip_votes[member.id] = self._skip_votes[member.id]
 
             # Add onto the new_clear_votes dictionary.
-            if member not in self._skip_votes.keys():
+            if member not in self._skip_votes.keys() or clear:
                 new_clear_votes[member.id] = False
             else:
                 new_clear_votes[member.id] = self._clear_votes[member.id]

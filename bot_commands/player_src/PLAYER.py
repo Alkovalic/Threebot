@@ -1,4 +1,5 @@
 from discord.ext import commands
+from discord import ClientException, Embed
 from . import voice_queue
 
 import enum
@@ -20,6 +21,13 @@ class Player:
     def _remove_queue(self, guild_id):
         del self._voice_queues[guild_id]
 
+    # Sends a message in response to ctx that will be deleted in the given amount of time in seconds.
+    # Usually used for error responses.
+    async def send_timed_msg(self, ctx, msg, time=3):
+        msg = await ctx.send(msg)
+        await asyncio.sleep(time, loop=self._bot.loop)
+        await msg.delete()
+
     # Get the database pool once the database has been fully loaded.
     async def on_ready(self):
 
@@ -31,6 +39,13 @@ class Player:
             await asyncio.sleep(delay=1, loop=self._bot.loop)
 
         self._pool = self._bot.pool
+
+    async def on_voice_state_update(self, member, before, after):
+        try:
+            if member.guild.id in self._voice_queues:
+                await self._voice_queues[member.guild.id].generate_voting_dictionaries()
+        except AttributeError: # Occurs when the bot first joins a channel.
+            pass
 
     # PLAYER's on_message reads every message that starts withh the command prefix.
     # It then attempts to find the entry in the PIN database.
@@ -75,7 +90,7 @@ class Player:
             if not await self._voice_queues[message.guild.id].join_channel(message.author.voice):
                 return
             # Finally, attempt to play the audio through the voice client.
-            await self._voice_queues[message.guild.id].play_audio_file(query.name, query.path)
+            await self._voice_queues[message.guild.id].play_audio_file(query.name, query.path, message.author.id)
 
     @commands.command(help="Play audio from a given URL.\n"
                            "If the player is currently playing something, add the url to the queue.\n"
@@ -93,7 +108,8 @@ class Player:
             return
         # Play the provided url through the voice client.
         if url:
-            await self._voice_queues[ctx.guild.id].play_audio_url(url, ctx.author.id)
+            if not await self._voice_queues[ctx.guild.id].play_audio_url(url, ctx.author.id):
+                return await self.send_timed_msg(ctx, "Added to queue.")
 
     @commands.command(help="Vote to skip the currently playing song.\n"
                            "If at least three (or majority, whichever is less) votes are made,"
@@ -102,7 +118,27 @@ class Player:
                            " or is an administrator.",
                       brief="- Vote to skip the current song.")
     async def skip(self, ctx):
-        await self._voice_queues[ctx.author.id].vote_to_skip(ctx.author.id, ctx)
+
+        # If there is no voice client connected to this guild, do nothing.
+        if not ctx.guild.id in self._voice_queues:
+            return
+
+        # If the current audio that is playing isn't part of a queue, skip it like the stop command would.
+        if self._voice_queues[ctx.guild.id].state != voice_queue.PlayerState.UNINTERRUPTABLE:
+            return self._voice_queues[ctx.guild.id].skip_current_audio()
+
+        # Attempt to cast a vote for the author.
+        try:
+            result = await self._voice_queues[ctx.guild.id].vote_to_skip(ctx.author.id, ctx.author.permissions_in(ctx.channel).administrator)
+        except (ClientException):
+            return await self.send_timed_msg(ctx, "You are not currently in the same channel as Threebot.")
+        
+        # If the vote caused a majority/3 to pass, briefly notify the voters.
+        if result:
+            return await self.send_timed_msg(ctx, "The current song has been skipped!")
+        else:
+            return await self.send_timed_msg(ctx, f"{ctx.author.name} has voted to skip the current song!")
+        
 
     @commands.command(help="Vote to clear the queue.\n"
                             "If at least three (or majority, whichever is less) votes are made,"
@@ -110,17 +146,75 @@ class Player:
                             "Immediately skip if the user is an administrator.",
                       brief="- Vote to clear the queue.")
     async def clear(self, ctx):
-        pass
+    
+        # If there is no voice client connected to this guild, do nothing.
+        if not ctx.guild.id in self._voice_queues:
+            return
+
+        # If the current audio that is playing isn't part of a queue, skip it like the stop command would.
+        if self._voice_queues[ctx.guild.id].state != voice_queue.PlayerState.UNINTERRUPTABLE:
+            return self._voice_queues[ctx.guild.id].skip_current_audio()
+
+        # Attempt to cast a vote for the author.
+        try:
+            result = await self._voice_queues[ctx.guild.id].vote_to_clear(ctx.author.id, ctx.author.permissions_in(ctx.channel).administrator)
+        except (ClientException):
+            return await self.send_timed_msg(ctx, "You are not currently in the same channel as Threebot.")
+        
+        # If the vote caused a majority/3 to pass, briefly notify the voters.
+        if result:
+            return await self.send_timed_msg(ctx, "The queue has been cleared!")
+        else:
+            return await self.send_timed_msg(ctx, f"{ctx.author.name} has voted to clear the queue!")
 
     @commands.command(help="Shows a list of songs in the queue.",
                       brief="- Shows a list of songs.")
     async def queue(self, ctx):
-        pass
+        
+        # If there is no voice client connected to this guild, do nothing.
+        if not ctx.guild.id in self._voice_queues:
+            return
+        
+        # Get the list of items in the queue.
+        q = self._voice_queues[ctx.guild.id].queue_summary
+
+        if not q:
+            return
+
+        # If there is anything in the queue, return a formatted list of them, including the currently playing item.
+        ret = f"```\nQueue:\n\n   {self._voice_queues[ctx.guild.id].currently_playing.name} (NOW PLAYING)\n"
+        ptr = 0
+        for item in q:
+            ret += f"   {item}\n"
+            if ptr > 5:
+                ret += f"(And {len(q) - ptr} more.."
+                break
+            else:
+                ptr += 1
+
+        ret += "```"
+
+        return await ctx.send(ret)
 
     @commands.command(help="Shows information about the currently playing song.",
                       brief="- Shows the current song.")
     async def current(self, ctx):
-        pass
+
+        # If there is no voice client connected to this guild, do nothing.
+        if not ctx.guild.id in self._voice_queues or not self._voice_queues[ctx.guild.id].currently_playing:
+            return
+
+        item = self._voice_queues[ctx.guild.id].currently_playing
+        name = item.name
+        url = item.url
+        author_text = f"Requested by {ctx.guild.get_member(item.author_id).display_name}."
+
+        # name, url, authorid
+
+        embed=Embed(title=name, url=url, color=0xfffc00)
+        embed.set_author(name="Now playing:")
+        embed.set_footer(text=author_text)
+        return await ctx.send(embed=embed)
 
     @commands.command(help="Stops the audio currently playing, "
                            "if the audio is not part of the queue.",
@@ -131,7 +225,8 @@ class Player:
         if not ctx.guild.id in self._voice_queues:
             return
 
-        self._voice_queues[ctx.guild.id].skip_current_audio()
+        if self._voice_queues[ctx.guild.id].state != voice_queue.PlayerState.UNINTERRUPTABLE:
+            self._voice_queues[ctx.guild.id].skip_current_audio()
 
 
 def setup(bot):
