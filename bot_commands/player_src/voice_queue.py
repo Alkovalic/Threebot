@@ -175,37 +175,25 @@ class VoiceQueue():
     # Returns True if the audio is played immediately, and False if it is queued or failed.
     async def play_audio_url(self, url, author_id):
         loop = self._loop or asyncio.get_event_loop()
-        extract_opt = {
+        opt = {
             'format': '43/best',
             'outtmpl': f'{self._video_path}/%(title)s_%(id)s.%(ext)s',
             'noplaylist': True,
             'quiet': True,
             'no_warnings': True,
+            'download_archive': f'{self._video_path}/video_list.txt'
         }
-        with youtube_dl.YoutubeDL(extract_opt) as extr:
+        with youtube_dl.YoutubeDL(opt) as extr:
             video_data = await loop.run_in_executor(None, lambda: extr.extract_info(url, download=False))
 
             # If the video is live, just put the url in as the filename.
             filename = video_data['url']
-
-            opt = {
-                'format': '43/best',
-                'outtmpl': f'{self._video_path}/%(title)s_%(id)s.%(ext)s',
-                'noplaylist': True,
-                'ignoreerrors': False,
-                'logtostderr': False,
-                'quiet': True,
-                'no_warnings': True,
-                'download_archive': f'{self._video_path}/video_list.txt',
-            }
 
             # If the video is NOT live, download the file, and replace the filename accordingly.
             if not video_data['is_live']:
                 with youtube_dl.YoutubeDL(opt) as yt:
                     yt.download([url])
                 filename = extr.prepare_filename(video_data)
-
-            print(filename)
 
             data = self._create_audio_data(name=video_data.get('title', 'untitled'), path=filename, author_id=author_id, url=url, playlist=True)
             return await self._play_audio_data(data)

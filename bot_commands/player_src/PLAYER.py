@@ -12,7 +12,7 @@ class Player:
         self._pool = None
         self._voice_queues = {}
         self._pin_table = "PIN_{}"
-        #self._queue_management_task = self._bot.loop.create_task(self.manage_queues())
+        self._queue_management_task = self._bot.loop.create_task(self.manage_queues())
 
     # Responsible for clearing inactive voice clients.
     # Every 60 seconds, this task will check every VoiceQueue in the dict of voice queues.
