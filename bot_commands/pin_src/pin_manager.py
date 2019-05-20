@@ -279,10 +279,10 @@ class PinManager:
 
                 if check is None:
                     return None
-                    
+
                 # At this point, the entry exists
                 # Check if the author is able to remove the entry.
-                if check.authorid != author and not override:
+                if check.authorid != str(author) and not override:
                     raise PermissionError(check.authorid)
 
                 # From here, we are able to remove the entry from the database.
@@ -314,7 +314,9 @@ class PinManager:
                 execute_input = (rf"SELECT name FROM {table} "
                                  rf"WHERE name LIKE (?)")
 
-                if len(name) == 1:  # Single letter input.
+                if name is None:
+                    await c.execute(rf"SELECT name FROM {table}")
+                elif len(name) == 1:  # Single letter input.
                     await c.execute(execute_input, f"{name}%")
                 else:
                     await c.execute(execute_input, f"%{name}%")

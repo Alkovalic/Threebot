@@ -7,7 +7,7 @@ import random
 import asyncio
 
 
-class RNG:  # Cog
+class RNG(commands.Cog):  # Cog
 
     """ Cog responsible for handling commands related to random number generation.
     """
@@ -16,6 +16,13 @@ class RNG:  # Cog
         self._bot = bot
         self._pool = None  # Database pool from the bot.
         self._boo_generator = random_boo_generator.RandomBooGenerator()
+        self._dice = dice.Dice(
+            "```\n"
+            "{author} rolled {input}!\n\n"
+            "Result:  {result}\n\n"
+            "Sum:  {sum}\n"
+            "```"
+        )
         self._defaults = None
         self._table = "default_dice"
         self._initial_dice = "3d6"  # Default rolls for a newly added entry for a guild.
@@ -62,6 +69,7 @@ class RNG:  # Cog
                 await c.execute(rf"DELETE FROM {self._table} WHERE guild=(?)", guild_id)
 
     # Initialize defaults when the bot is ready.
+    @commands.Cog.listener()
     async def on_ready(self):
 
         if not self._pool is None:
@@ -90,10 +98,12 @@ class RNG:  # Cog
         await self._init_defaults()
 
     # Create a new entry for the newly joined guild.
+    @commands.Cog.listener()
     async def on_guild_join(self, guild):
         await self._add_guild_entry(guild.id)
 
     # Remove the entry for the removed guild.
+    @commands.Cog.listener()
     async def on_guild_remove(self, guild):
         await self._remove_guild_entry(guild.id)
 
@@ -110,52 +120,62 @@ class RNG:  # Cog
             response = f"{ctx.author.display_name}'s coin landed {'Heads' if result%2==True else 'Tails'} ({result})!"
             await ctx.send(response)
 
-    # Roll subcommand from RNG.
-    # Responsible for handling dice rolls,
-    #  as well as managing a default roll for easy use.
-    @commands.command(name='roll',
-                 help="Rolls a dice in ndn format.\n"
-                      "Rolls the default setting if no arguments are passed.\n"
-                      "Usage:\n"
-                      "  default <n>d<n> -> Sets the default roll.\n"
-                      "  <n>d<n> -> Rolls a dice in <dice>d<faces> format",
-                 brief="- Dice roller.")
-    async def roll(self, ctx, arg=None, arg2=None):
+    # Default roll subcommand for RNG
+    # Responsible for changing the default roll of the server it is invoked in.
+    @commands.command(name='default_roll',
+                 help="Sets the server's default dice roll.\n"
+                      "Format must be in mdn or k format, and supports addition or subtraction.\n"
+                      "Examples:\n"
+                      "  default_roll 3d6 -> Sets the default roll to 3 six sided dice."
+                      "  default_roll 1d20+3 -> Sets the default roll to 1 twenty sided dice plus 3.",
+                 brief="- Server default dice.")
+    async def default_roll(self, ctx, *, arg=None):
 
         # No arguments passed.
         if arg is None:
-            return await ctx.send(dice.roll_string(ctx.author.name, self._defaults[ctx.guild.id]))
+            return await ctx.send(f"Current default roll:  {self._defaults[ctx.guild.id]}")
 
-        # First argument is "default"
-        elif arg == "default":  # At least one argument passed.
+        # Second argument must be what user wants the server default to become.
+        # Second argument should be in format <n>d<f>
+        if self._dice.max_length(arg) > 2000:
+            return await ctx.send(f"Argument invalid! " 
+                                   "Format must be in mdn format, and result cannot potentially exceed 2000 characters.")
+        
+        # Modify default roll table, and update database.
+        self._defaults[ctx.guild.id] = arg.replace(" ", "")
 
-            # Only argument "default" is passed.
-            if arg2 is None:
-                return await ctx.send(f"Current default roll:  {self._defaults[ctx.guild.id]}")
+        # Updating guild default in the database.
+        async with self._pool.acquire() as conn:
+            async with conn.cursor() as c:
+                await c.execute(f"UPDATE {self._table} SET dice=(?) WHERE guild=(?)", arg.replace(" ",""), ctx.guild.id)
+                await c.commit()
+        
+        return await ctx.send(f"Default roll has been set to {arg}!")
 
-            # Second argument must be what user wants the server default to become.
-            # Second argument should be in format <n>d<f>
-            if not dice.is_valid_roll(arg2):
-                return await ctx.send(f"Argument {arg2} invalid! "
-                                      "Format must be ndn, and result cannot potentially exceed 2000 characters.")
+    # Roll command for RNG.
+    # Responsible for rolling whatever the author gives, or the default roll of the guild if no arg is passed.
+    @commands.command(name='roll',
+                help="Rolls a given dice roll.\n"
+                     "Format must be in mdn or k format, and supports addition or subtraction.\n"
+                     "If no argument is provided, rolls the default roll of the guild.\n"
+                     "Examples:\n"
+                     "  roll 3d6 -> Rolls 3 six sided dice."
+                     "  roll 1d20 + 3 -> Rolls 1 twenty sided dice, and adds three to it."
+                     "  roll -> Rolls whatever the default dice is set as in the current guild.",
+                brief="- Dice roller.") 
+    async def roll(self, ctx, *, arg=None):
 
-            # Modify default roll table, and update database.
-            self._defaults[ctx.guild.id] = arg2
+        # No arguments passed.
+        if arg is None:
+            return await ctx.send(self._dice.roll_dice(self._defaults[ctx.guild.id], ctx.author.display_name))
 
-            # Could potentially make a function in DatabaseManager to handle value updating,
-            #  but worried that it could lead to certain values being updated when they shouldn't be.
-            async with self._pool.acquire() as conn:
-                async with conn.cursor() as c:
-                    await c.execute(f"UPDATE {self._table} SET dice=(?) WHERE guild=(?)", arg2, ctx.guild.id)
-                    await c.commit()
+        # Check if the argument is formatted properly.
+        if self._dice.max_length(arg) > 2000:
+            return await ctx.send("Argument invalid! "
+                                  "Format must be in mdn format, and result cannot potentially exceed 2000 characters.")
 
-            return await ctx.send(f"Default roll has been set to {arg2}!")
-        # One argument passed.
-        else:
-            if not dice.is_valid_roll(arg):
-                return await ctx.send(f"Argument {arg} invalid! Format must be ndn, *n* must be non-zero, "
-                                      "and result cannot potentially exceed 2000 characters.")
-            return await ctx.send(dice.roll_string(ctx.author.name, arg))
+        # At this point, the format is correct, and is ready to be rolled.
+        return await ctx.send(self._dice.roll_dice(arg, ctx.author.display_name))    
 
     # Choose subcommand from RNG.
     # Responsible for choosing a random element from a list of arguments.

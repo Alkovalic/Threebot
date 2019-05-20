@@ -5,7 +5,7 @@ from . import voice_queue
 import enum
 import asyncio
 
-class Player:
+class Player(commands.Cog):
 
     def __init__(self, bot):
         self._bot = bot
@@ -21,9 +21,7 @@ class Player:
     # - If the queue's state is STALE, disconnect the queue and remove it from the dict of voice queues.
     async def manage_queues(self):
         await self._bot.wait_until_ready()
-        print("fda")
-        while not self._bot._is_closed():
-            print("asdf")
+        while not self._bot.is_closed():
             for guild in list(self._voice_queues.keys()):
                 vq = self._voice_queues[guild]
                 if vq.state == voice_queue.PlayerState.UNINTERRUPTABLE or vq.state == voice_queue.PlayerState.PLAYING:
@@ -44,14 +42,8 @@ class Player:
     def _remove_queue(self, guild_id):
         del self._voice_queues[guild_id]
 
-    # Sends a message in response to ctx that will be deleted in the given amount of time in seconds.
-    # Usually used for error responses.
-    async def send_timed_msg(self, ctx, msg, time=3):
-        msg = await ctx.send(msg)
-        await asyncio.sleep(time, loop=self._bot.loop)
-        await msg.delete()
-
     # Get the database pool once the database has been fully loaded.
+    @commands.Cog.listener()
     async def on_ready(self):
 
         # Do nothing if the pool already exists.
@@ -63,6 +55,7 @@ class Player:
 
         self._pool = self._bot.pool
 
+    @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         try:
             if member.guild.id in self._voice_queues:
@@ -73,6 +66,7 @@ class Player:
     # PLAYER's on_message reads every message that starts withh the command prefix.
     # It then attempts to find the entry in the PIN database.
     # If an entry is found, it checks for whether it is a sound command, and plays it.
+    @commands.Cog.listener()
     async def on_message(self, message):
 
         if message.content.startswith(self._bot.command_prefix):
@@ -132,7 +126,7 @@ class Player:
         # Play the provided url through the voice client.
         if url:
             if not await self._voice_queues[ctx.guild.id].play_audio_url(url, ctx.author.id):
-                return await self.send_timed_msg(ctx, "Added to queue.")
+                return await self._bot.send_timed_msg(ctx, "Added to queue.")
 
     @commands.command(help="Vote to skip the currently playing song.\n"
                            "If at least three (or majority, whichever is less) votes are made,"
@@ -154,13 +148,13 @@ class Player:
         try:
             result = await self._voice_queues[ctx.guild.id].vote_to_skip(ctx.author.id, ctx.author.permissions_in(ctx.channel).administrator)
         except (ClientException):
-            return await self.send_timed_msg(ctx, "You are not currently in the same channel as Threebot.")
+            return await self._bot.send_timed_msg(ctx, "You are not currently in the same channel as Threebot.")
         
         # If the vote caused a majority/3 to pass, briefly notify the voters.
         if result:
-            return await self.send_timed_msg(ctx, "The current song has been skipped!")
+            return await self._bot.send_timed_msg(ctx, "The current song has been skipped!")
         else:
-            return await self.send_timed_msg(ctx, f"{ctx.author.name} has voted to skip the current song!")
+            return await self._bot.send_timed_msg(ctx, f"{ctx.author.name} has voted to skip the current song!")
         
 
     @commands.command(help="Vote to clear the queue.\n"
@@ -182,13 +176,13 @@ class Player:
         try:
             result = await self._voice_queues[ctx.guild.id].vote_to_clear(ctx.author.id, ctx.author.permissions_in(ctx.channel).administrator)
         except (ClientException):
-            return await self.send_timed_msg(ctx, "You are not currently in the same channel as Threebot.")
+            return await self._bot.send_timed_msg(ctx, "You are not currently in the same channel as Threebot.")
         
         # If the vote caused a majority/3 to pass, briefly notify the voters.
         if result:
-            return await self.send_timed_msg(ctx, "The queue has been cleared!")
+            return await self._bot.send_timed_msg(ctx, "The queue has been cleared!")
         else:
-            return await self.send_timed_msg(ctx, f"{ctx.author.name} has voted to clear the queue!")
+            return await self._bot.send_timed_msg(ctx, f"{ctx.author.name} has voted to clear the queue!")
 
     @commands.command(help="Shows a list of songs in the queue.",
                       brief="- Shows a list of songs.")
@@ -250,6 +244,9 @@ class Player:
 
         if self._voice_queues[ctx.guild.id].state != voice_queue.PlayerState.UNINTERRUPTABLE:
             self._voice_queues[ctx.guild.id].skip_current_audio()
+        
+        else:
+            await self.skip(ctx)
 
 
 def setup(bot):

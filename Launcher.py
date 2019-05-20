@@ -10,7 +10,7 @@ output_path = "saved"
 bot = Threebot(cogs=init_cog,
                output_path=output_path,
                db_args=db_args,
-               command_prefix="::",
+               command_prefix="~",
                description="A bot with various utilities.",
                pm_help=False,
                help_attrs={"hidden": True,
