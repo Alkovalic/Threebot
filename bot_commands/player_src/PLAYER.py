@@ -195,19 +195,17 @@ class Player(commands.Cog):
         # Get the list of items in the queue.
         q = self._voice_queues[ctx.guild.id].queue_summary
 
-        if not q:
-            return
-
         # If there is anything in the queue, return a formatted list of them, including the currently playing item.
         ret = f"```\nQueue:\n\n   {self._voice_queues[ctx.guild.id].currently_playing.name} (NOW PLAYING)\n"
         ptr = 0
-        for item in q:
-            ret += f"   {item}\n"
-            if ptr > 5:
-                ret += f"(And {len(q) - ptr} more.."
-                break
-            else:
-                ptr += 1
+        if q:
+            for item in q:
+                ret += f"   {item}\n"
+                if ptr > 5:
+                    ret += f"(And {len(q) - ptr} more.."
+                    break
+                else:
+                    ptr += 1
 
         ret += "```"
 
