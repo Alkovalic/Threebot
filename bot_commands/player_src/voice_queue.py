@@ -189,8 +189,11 @@ class VoiceQueue():
             # If the video is live, just put the url in as the filename.
             filename = video_data['url']
 
+            if video_data['is_live']:
+                raise ValueError("Cannot play streams through play_audio_url.")
+
             # If the video is NOT live, download the file, and replace the filename accordingly.
-            if not video_data['is_live'] and video_data['duration'] < 600:
+            if video_data['duration'] < 600:
                 with youtube_dl.YoutubeDL(opt) as yt:
                     print(url)
                     yt.download([url])

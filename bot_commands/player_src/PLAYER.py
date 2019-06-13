@@ -125,8 +125,11 @@ class Player(commands.Cog):
             return
         # Play the provided url through the voice client.
         if url:
-            if not await self._voice_queues[ctx.guild.id].play_audio_url(url, ctx.author.id):
-                return await self._bot.send_timed_msg(ctx, "Added to queue.")
+            try:
+                if not await self._voice_queues[ctx.guild.id].play_audio_url(url, ctx.author.id):
+                    return await self._bot.send_timed_msg(ctx, "Added to queue.")
+            except ValueError:
+                return await self._bot.send_timed_msg(ctx, "You cannot play streamed audio through the player.")
 
     @commands.command(help="Vote to skip the currently playing song.\n"
                            "If at least three (or majority, whichever is less) votes are made,"
