@@ -102,25 +102,25 @@ class PIN(commands.Cog):
                       "and the association will not be made.\n"
                       "          Adding a sound file to the list of pins will add it to the soundboard.",
                  brief="- Pins a message or file.")
-    async def pin(self, ctx, name, data=None):\
+    async def pin(self, ctx, name, *, data=None):\
 
         if not name:
-            return await ctx.send("No name provided!")
+            return await self._bot.send_timed_msg(ctx, "No name provided!")
 
         for cmd in self._bot.commands:
             if name == cmd.name:
-                return await ctx.send("Name provided is a built-in command!")
+                return await self._bot.send_timed_msg(ctx, "Name provided is a built-in command!")
 
         if len(name) > 25:
-            return await ctx.send("Length of pin name must be 25 characters or less!")
-
+            return self._bot.send_timed_msg(ctx, "Length of pin name must be 25 characters or less!")
+        
         value = data
         
         # Handle case where no data entry was passed.
         if not data:
 
             # Begin seeking for a file.
-            await ctx.send(f"Please upload a file, {ctx.author.name}.")
+            req_msg = await ctx.send(f"Please upload a file, {ctx.author.name}.")
 
             # A lot of this is straight from the discord.py documentation.
             
@@ -131,18 +131,21 @@ class PIN(commands.Cog):
             try:  # Wait for a message with an attachment.
                 msg = await self._bot.wait_for('message', check=check, timeout=20.0)
             except asyncio.TimeoutError:  # 20 seconds has passed without a valid file sent.
-                return await ctx.send("File not found, or file was too big!")
+                await req_msg.delete()
+                return await self._bot.send_timed_msg(ctx, "File not found, or file was too big!")
             # A valid file has been sent at this point.
             value = msg.attachments[0]
+            await req_msg.delete()
         
         try:
             await self._pin_manager.add_entry(name, ctx.author.id, ctx.guild.id, value)
-            return await ctx.send(f'Entry "{name}" added!')
+            await self._bot.send_timed_msg(ctx, f'Entry "{name}" added!')
         except ValueError as v:  # Entry failed due to an invalid value being passed.
-            return await ctx.send(v.args[0])
+            await self._bot.send_timed_msg(ctx, v.args[0])
         except FileExistsError as f:  # Entry failed due to an association or file already existing.
-            return await ctx.send(f'Entry "{f.args[0]}" already exists!')
+            await self._bot.send_timed_msg(ctx, f'Entry "{f.args[0]}" already exists!')
 
+        await msg.delete()
 
     @commands.command(name="unpin",
                  help="Removes a <name>:<data> association from the list of pins.\n"
@@ -153,7 +156,7 @@ class PIN(commands.Cog):
     async def unpin(self, ctx, name=None):
 
         if not name:
-            return await ctx.send("No name provided!")
+            return await self._bot.send_timed_msg(ctx, "No name provided!")
 
         # Check if the author is allowed to remove the entry.
         override = False
@@ -166,31 +169,31 @@ class PIN(commands.Cog):
         try:
             entry = await self._pin_manager.get_entry(name, ctx.guild.id)
             if entry is None:
-                return await ctx.send(f"Entry {name} does not exist!")
+                return await self._bot.send_timed_msg(ctx, f"Entry {name} does not exist!")
             if isinstance(entry, discord.File):
                 await ctx.send(file=entry)
                 entry.fp.close()
             else:
                 await ctx.send(entry)
         except ValueError as v:
-            return await ctx.send(v.args[0])
+            return await self._bot.send_timed_msg(ctx, v.args[0])
 
         # Attempt to remove the entry.
         try:
             removal = await self._pin_manager.remove_entry(name, ctx.author.id, ctx.guild.id, override=override)
         except PermissionError as e:  # User not allowed to remove the entry.
             owner = ctx.guild.get_member(e.args[0])
-            return await ctx.send(f"You are unauthorized to remove entry created by {owner}!")
+            return await self._bot.send_timed_msg(ctx, f"You are unauthorized to remove entry created by {owner}!")
         except ValueError as v:  # Redundancy, should not be reached under normal circumstances.
-            return await ctx.send(v.args[0])
+            return await self._bot.send_timed_msg(ctx, v.args[0])
 
         # Should not happen, but here just in case.
         if not removal:
             entry.close()
-            return await ctx.send(f"Unable to remove entry {name}!")
+            return await self._bot.send_timed_msg(ctx, f"Unable to remove entry {name}!")
 
         # Removal successful.
-        await ctx.send(f"Entry {name} removed successfully.")
+        await self._bot_send_timed_msg(ctx, f"Entry {name} removed successfully.")
 
 
     @commands.command(name="list",
@@ -205,10 +208,10 @@ class PIN(commands.Cog):
         # No results found.
         if not results:  # Quality wording.
             if name is None:
-                return await ctx.send(f"No entries found.")
+                return await self._bot.send_timed_msg(ctx, f"No entries found.")
             elif len(name) == 1:
-                return await ctx.send(f"No entries starting with {name} found.")
-            return await ctx.send(f"No entries similar to {name} found.")
+                return await self._bot.send_timed_msg(ctx, f"No entries starting with {name} found.")
+            return await self._bot.send_timed_msg(ctx, f"No entries similar to {name} found.")
 
         # Create a formatted list of results, cutting off the list if more than list_length results are found.
 
@@ -241,12 +244,12 @@ class PIN(commands.Cog):
     async def info(self, ctx, *, name=None):
 
         if name is None:
-            return await ctx.send("No entry provided!")
+            return await self._bot.send_timed_msg(ctx, "No entry provided!")
 
         result = await self._pin_manager.get_entry_details(name, ctx.guild.id)
 
         if result is None:
-            return await ctx.send("Entry not found!")
+            return await self._bot.send_timed_msg(ctx, "Entry not found!")
 
         # Get the author's discord.Member representation, and gather info from it.
         # Also prepare the info from result for the embed.
