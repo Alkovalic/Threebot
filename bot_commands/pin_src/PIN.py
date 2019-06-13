@@ -66,6 +66,11 @@ class PIN(commands.Cog):
             # Remove the command prefix, and get the first word sent.
             cmd = message.content.lstrip(self._bot.command_prefix)
 
+            file_flag = False
+            if cmd.endswith("-f"):
+                file_flag = True
+                cmd = cmd.rstrip("-f").rstrip()
+
             # Handle empty case.
             if not cmd:
                 return
@@ -86,7 +91,7 @@ class PIN(commands.Cog):
             #  and ignore it if it is.
             if isinstance(result, discord.File):
                 for ext in self._pin_manager._sound_extensions:
-                    if result.filename.endswith(ext):
+                    if (result.filename.endswith(ext) and message.author.voice and not file_flag):
                         return
                 return await message.channel.send(file=result)
 
@@ -193,7 +198,7 @@ class PIN(commands.Cog):
             return await self._bot.send_timed_msg(ctx, f"Unable to remove entry {name}!")
 
         # Removal successful.
-        await self._bot_send_timed_msg(ctx, f"Entry {name} removed successfully.")
+        await self._bot._send_timed_msg(ctx, f"Entry {name} removed successfully.")
 
 
     @commands.command(name="list",
