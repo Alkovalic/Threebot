@@ -80,7 +80,7 @@ class PinManager:
             entry_value = value
 
             # Handle Youtube URLs.
-            if "youtu.be" in value or "watch?v=" in value:
+            if "youtu.be" in value or "watch?v=" in value and len(value.split()) == 1:
                 try:
                     entry_path = await self._file_manager.add_ytlink(value, guild_id)
                 except FileExistsError as e:

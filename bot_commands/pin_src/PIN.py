@@ -96,6 +96,11 @@ class PIN(commands.Cog):
                 return await message.channel.send(file=result)
 
             # At this point, the pin was associated with a string, so return the string.
+            # Do nothing if the pin is being played by sound.
+            # TODO fix this after updating how the database calls work.
+            is_yt = "youtu.be" in result.lower() or "youtube.com" in result.lower() and len(result.split()) == 1
+            if is_yt and message.author.voice and not file_flag:
+                return
             return await message.channel.send(result)
 
 
