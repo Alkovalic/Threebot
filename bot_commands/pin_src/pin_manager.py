@@ -183,7 +183,9 @@ class PinManager:
         file = None
         # If a path exists, open and return it.
         if details.path:
-            file = await self._file_manager.get_file(details.path)
+            is_oversized = (os.stat(details.path).st_size > 8000000)
+            if not is_oversized:
+                file = await self._file_manager.get_file(details.path)
 
         # Return all info gathered.
         return (details, file)
