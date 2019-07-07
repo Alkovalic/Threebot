@@ -23,9 +23,15 @@ class Threebot(commands.Bot):
     async def send_timed_msg(self, ctx, msg, time=3):
         msg = await ctx.send(msg)
         await asyncio.sleep(time, loop=self.loop)
-        await msg.delete()
+        await msg.delete()  
 
     # EVENTS #
+
+    async def on_command_error(self, ctx, error):
+        if type(error) == commands.errors.CommandNotFound:
+            pass
+        else:
+            return await super().on_command_error(ctx, error)
 
     async def on_message(self, message):
         if message.content.startswith("~") and not message.content.startswith("~~"):
