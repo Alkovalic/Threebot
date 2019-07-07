@@ -163,7 +163,7 @@ class PIN(commands.Cog):
                       "or must have an administrative role.\n"
                       "Returns the data after removing the association.",
                  brief="- Removes a pin.")
-    async def unpin(self, ctx, name=None):
+    async def unpin(self, ctx, *, name=None):
 
         if not name:
             return await self._bot.send_timed_msg(ctx, "No name provided!")
@@ -204,7 +204,6 @@ class PIN(commands.Cog):
 
         # Removal successful.
         await self._bot._send_timed_msg(ctx, f"Entry {name} removed successfully.")
-
 
     @commands.command(name="list",
                 help="Finds pins similar to a given search term."
@@ -278,7 +277,9 @@ class PIN(commands.Cog):
         embed.set_footer(text=date)
         if pin_value is None and self.is_image(result[1].filename):
             embed.set_image(url=f'attachment://{result[1].filename}')
-        return await ctx.send(embed=embed, file=result[1])
+        await ctx.send(embed=embed)
+        if (result[1]):
+            return await ctx.send(file=result[1])
 
 def setup(bot):
     bot.add_cog(PIN(bot))
