@@ -154,7 +154,7 @@ class PIN(commands.Cog):
             await self._bot.send_timed_msg(ctx, v.args[0])
         except FileExistsError as f:  # Entry failed due to an association or file already existing.
             await self._bot.send_timed_msg(ctx, f'Entry "{f.args[0]}" already exists!')
-            
+
 
     @commands.command(name="unpin",
                  help="Removes a <name>:<data> association from the list of pins.\n"
@@ -204,7 +204,7 @@ class PIN(commands.Cog):
         # Removal successful.
         await self._bot.send_timed_msg(ctx, f"Entry {name} removed successfully.")
 
-    @commands.command(name="list",
+    @commands.command(name="pins",
                 help="Finds pins similar to a given search term."
                      "If the term is a single letter, returns all pins that start with that letter.",
                 brief="- Searches pins.")
