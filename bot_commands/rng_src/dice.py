@@ -7,7 +7,6 @@ class Dice:
 
     def __init__(self, output_format):
         self.output_format = output_format
-        print(len(self.output_format.format(author='', input='', result='', sum='')))
         self.msg_length_limit = 2000
         self.author_len_limit = 32
 

@@ -29,7 +29,7 @@ class Threebot(commands.Bot):
 
     async def on_message(self, message):
         if message.content.startswith("~") and not message.content.startswith("~~"):
-            print(f"{message.author}:{message.content}")
+            print(f"[{message.channel}@{message.guild.name}] {message.author}:  {message.content}")
             await message.delete()
             await self.process_commands(message)
 

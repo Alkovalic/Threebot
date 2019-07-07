@@ -12,7 +12,6 @@ class DatabaseManager:
     def __init__(self, db_args, output_path):
         self._driver = db_args["DRIVER"]
         self._database = db_args['DATABASE']
-        print(self._database)
         self._pool = None
 
     # Allows other scripts to access the database pool,

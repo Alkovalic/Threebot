@@ -195,7 +195,6 @@ class VoiceQueue():
             # If the video is NOT live, download the file, and replace the filename accordingly.
             if video_data['duration'] < 600:
                 with youtube_dl.YoutubeDL(opt) as yt:
-                    print(url)
                     yt.download([url])
                 filename = extr.prepare_filename(video_data)
 
