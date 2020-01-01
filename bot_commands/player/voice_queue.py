@@ -3,11 +3,13 @@ import discord
 import youtube_dl
 import asyncio
 
+
 class PlayerState(enum.Enum):
     PLAYING = 0
     NOT_PLAYING = 1
     UNINTERRUPTABLE = 2
     STALE = 3
+
 
 class AudioData():
 
@@ -18,7 +20,7 @@ class AudioData():
         self.url = url
         self.playlist = playlist
         self.author_id = author_id
-        #self.time_left
+
 
 class VoiceQueue():
 

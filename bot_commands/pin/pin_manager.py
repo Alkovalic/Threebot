@@ -1,9 +1,8 @@
 import os
 import discord
-import youtube_dl
 import time
 
-from bot_commands.pin_src import file_manager
+from bot_commands.pin import file_manager
 
 
 class PinManager:
@@ -25,7 +24,7 @@ class PinManager:
     # Add an entry, given a name, author, and value.
     # If value is a discord.Attachment, save the file, and add the entry to the database.
     # If value is a string, just add the entry to the database.
-    async def add_entry(self, name : str, author : str, guild_id, value):
+    async def add_entry(self, name: str, author: str, guild_id, value):
 
         # (type, name, author, value, path)
         # name and author are given from arguments
@@ -133,7 +132,6 @@ class PinManager:
             return await self._file_manager.remove_file(result.path)
 
         return True
-        
 
     # Get an entry, given a name and guild_id.
     # Returns either a discord.File object or a string.
@@ -160,7 +158,6 @@ class PinManager:
 
         # At this point, the only reasonable possibility is the value being a string.
         return details.value
-
 
     # Returns both detailed information about the entry,
     #  and, if a file is associated with the entry, said file

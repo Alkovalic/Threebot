@@ -1,6 +1,6 @@
 from discord.ext import commands
-from bot_commands.rng_src import dice
-from bot_commands.rng_src import random_boo_generator
+from bot_commands.rng import dice
+from bot_commands.rng import random_boo_generator
 
 import discord
 import random

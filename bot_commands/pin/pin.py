@@ -4,7 +4,7 @@ import math
 
 from time import strftime
 from discord.ext import commands
-from . import pin_manager
+from bot_commands.pin import pin_manager
 
 
 # Cog
@@ -91,7 +91,7 @@ class PIN(commands.Cog):
             #  and ignore it if it is.
             if isinstance(result, discord.File):
                 for ext in self._pin_manager._sound_extensions:
-                    if (result.filename.endswith(ext) and message.author.voice and not file_flag):
+                    if result.filename.endswith(ext) and message.author.voice and not file_flag:
                         return
                 return await message.channel.send(file=result)
 
@@ -277,8 +277,9 @@ class PIN(commands.Cog):
         if pin_value is None and self.is_image(result[1].filename):
             embed.set_image(url=f'attachment://{result[1].filename}')
         await ctx.send(embed=embed)
-        if (result[1]):
+        if result[1]:
             return await ctx.send(file=result[1])
+
 
 def setup(bot):
     bot.add_cog(PIN(bot))

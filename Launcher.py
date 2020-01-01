@@ -1,6 +1,6 @@
 from Threebot import Threebot
 
-init_cog = ["bot_commands.PING", "bot_commands.rng_src.RNG", "bot_commands.pin_src.PIN", "bot_commands.player_src.PLAYER"]
+init_cog = ["bot_commands.Ping", "bot_commands.rng.Rng", "bot_commands.pin.Pin", "bot_commands.player.Player"]
 
 db_args = {"DRIVER": "SQLite3 ODBC Driver",
            "DATABASE": "threebot.db"}

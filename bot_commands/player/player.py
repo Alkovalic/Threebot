@@ -1,9 +1,9 @@
 from discord.ext import commands
 from discord import ClientException, Embed
-from . import voice_queue
+from bot_commands.player import voice_queue
 
-import enum
 import asyncio
+
 
 class Player(commands.Cog):
 
@@ -32,7 +32,6 @@ class Player(commands.Cog):
                     await vq.exit_channel()
                     del self._voice_queues[guild]
             await asyncio.sleep(60)
-        
 
     # Creates a VoiceQueue for the given guild and discord.Voice object,
     #  and adds it to the dictionary of guilds.
@@ -158,7 +157,6 @@ class Player(commands.Cog):
             return await self._bot.send_timed_msg(ctx, "The current song has been skipped!")
         else:
             return await self._bot.send_timed_msg(ctx, f"{ctx.author.name} has voted to skip the current song!")
-        
 
     @commands.command(help="Vote to clear the queue.\n"
                             "If at least three (or majority, whichever is less) votes are made,"
